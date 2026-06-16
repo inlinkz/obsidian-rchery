@@ -1,14 +1,15 @@
 import { FileView, Notice, WorkspaceLeaf, type TFile } from 'obsidian';
+import type ArcheryPlugin from '../main';
 import {
 	applyScore,
 	applyScoreColorClass,
 	cardGrandTotal,
-	CONFIG_LIMITS,
 	createSessionState,
 	endIsComplete,
 	endTotal,
 	formatScore,
 	gridColumnStyle,
+	hasAnyScore,
 	MISS_SCORE,
 	nextCursor,
 	resizeSessionState,
@@ -22,6 +23,7 @@ import {
 	parseScorecardBlock,
 	serializeSession,
 } from '../services/markdownSync';
+import { getAllPresets, type LayoutPreset } from '../settings';
 
 export const VIEW_TYPE_SCORECARD = 'obsidian-archery-scorecard';
 
@@ -36,6 +38,7 @@ interface EndTotalRef {
 }
 
 export class ScorecardView extends FileView {
+	private plugin: ArcheryPlugin;
 	private state: SessionState = createSessionState();
 	private mode: ViewMode = 'view';
 	private cellRefs: CellRef[][][] = [];
@@ -51,12 +54,19 @@ export class ScorecardView extends FileView {
 	private sourceEditor: HTMLTextAreaElement | null = null;
 	private scorePadEl: HTMLElement | null = null;
 
-	constructor(leaf: WorkspaceLeaf) {
+	constructor(leaf: WorkspaceLeaf, plugin: ArcheryPlugin) {
 		super(leaf);
+		this.plugin = plugin;
 	}
 
 	getViewType(): string {
 		return VIEW_TYPE_SCORECARD;
+	}
+
+	onPresetsChanged(): void {
+		if (this.file && this.mode === 'view') {
+			this.renderViewMode();
+		}
 	}
 
 	getDisplayText(): string {
@@ -148,7 +158,7 @@ export class ScorecardView extends FileView {
 
 		this.scrollBodyEl = this.viewContainer.createDiv({ cls: 'archery-scroll-body' });
 
-		this.renderResizePanel(this.scrollBodyEl);
+		this.renderPresetPanel(this.scrollBodyEl);
 
 		const grids = this.scrollBodyEl.createDiv({
 			cls: config.cardsCount > 1 ? 'archery-grids archery-grids--multi' : 'archery-grids',
@@ -186,53 +196,50 @@ export class ScorecardView extends FileView {
 		this.refreshAllCells();
 	}
 
-	private renderResizePanel(parent: HTMLElement): void {
-		const panel = parent.createDiv({ cls: 'archery-resize-panel' });
-		panel.createDiv({ cls: 'archery-resize-title', text: 'Layout' });
+	private renderPresetPanel(parent: HTMLElement): void {
+		// Dimensions can only be changed while the scorecard is empty.
+		if (hasAnyScore(this.state)) return;
 
-		const row = panel.createDiv({ cls: 'archery-resize-row' });
+		const panel = parent.createDiv({ cls: 'archery-preset-panel' });
+
+		const presets = getAllPresets(this.plugin.settings);
 		const { config } = this.state;
+		const activePreset = presets.find((preset) => this.presetMatches(preset, config));
 
-		this.renderResizeControl(row, 'Ends', config.endsPerCard, CONFIG_LIMITS.endsPerCard, (value) =>
-			this.applyLayoutChange({ endsPerCard: value }),
-		);
-		this.renderResizeControl(row, 'Arrows', config.arrowsPerEnd, CONFIG_LIMITS.arrowsPerEnd, (value) =>
-			this.applyLayoutChange({ arrowsPerEnd: value }),
-		);
-		this.renderResizeControl(row, 'Cards', config.cardsCount, CONFIG_LIMITS.cardsCount, (value) =>
-			this.applyLayoutChange({ cardsCount: value }),
+		const chips = panel.createDiv({ cls: 'archery-preset-chips' });
+		for (const preset of presets) {
+			const chip = chips.createEl('button', {
+				cls: 'archery-preset-chip',
+				text: preset.name,
+			});
+			chip.toggleClass('archery-preset-chip-active', preset === activePreset);
+			chip.title = `${preset.cardsCount} cards × ${preset.endsPerCard} ends × ${preset.arrowsPerEnd} arrows`;
+			chip.addEventListener('click', () => this.applyPreset(preset));
+		}
+
+		if (!activePreset) {
+			const custom = chips.createSpan({
+				cls: 'archery-preset-chip archery-preset-chip-custom',
+				text: `Custom · ${config.cardsCount}×${config.endsPerCard}×${config.arrowsPerEnd}`,
+			});
+			custom.title = 'Current layout does not match a preset';
+		}
+	}
+
+	private presetMatches(preset: LayoutPreset, config: SessionConfig): boolean {
+		return (
+			preset.cardsCount === config.cardsCount &&
+			preset.endsPerCard === config.endsPerCard &&
+			preset.arrowsPerEnd === config.arrowsPerEnd
 		);
 	}
 
-	private renderResizeControl(
-		parent: HTMLElement,
-		label: string,
-		value: number,
-		limits: { min: number; max: number },
-		onChange: (value: number) => void,
-	): void {
-		const control = parent.createDiv({ cls: 'archery-resize-control' });
-		control.createSpan({ cls: 'archery-resize-label', text: label });
-
-		const minusBtn = control.createEl('button', {
-			cls: 'archery-resize-btn',
-			text: '−',
-			attr: { 'aria-label': `Decrease ${label.toLowerCase()}` },
+	private applyPreset(preset: LayoutPreset): void {
+		this.applyLayoutChange({
+			cardsCount: preset.cardsCount,
+			endsPerCard: preset.endsPerCard,
+			arrowsPerEnd: preset.arrowsPerEnd,
 		});
-		const valueEl = control.createSpan({ cls: 'archery-resize-value', text: String(value) });
-		const plusBtn = control.createEl('button', {
-			cls: 'archery-resize-btn',
-			text: '+',
-			attr: { 'aria-label': `Increase ${label.toLowerCase()}` },
-		});
-
-		minusBtn.disabled = value <= limits.min;
-		plusBtn.disabled = value >= limits.max;
-
-		minusBtn.addEventListener('click', () => onChange(value - 1));
-		plusBtn.addEventListener('click', () => onChange(value + 1));
-
-		valueEl.setText(String(value));
 	}
 
 	private applyLayoutChange(partial: Partial<SessionConfig>): void {
@@ -463,16 +470,28 @@ export class ScorecardView extends FileView {
 	private handleScore(value: number): void {
 		if (this.mode !== 'view' || !nextCursor(this.state)) return;
 
+		const wasEmpty = !hasAnyScore(this.state);
 		this.state = applyScore(this.state, value);
-		this.refreshAllCells();
+		// First score: rebuild so the preset chips disappear.
+		if (wasEmpty) {
+			this.renderViewMode();
+		} else {
+			this.refreshAllCells();
+		}
 		void this.persistState();
 	}
 
 	private handleUndo(): void {
 		if (this.mode !== 'view') return;
 
+		const wasNonEmpty = hasAnyScore(this.state);
 		this.state = undoLast(this.state);
-		this.refreshAllCells();
+		// Last score removed: rebuild so the preset chips reappear.
+		if (wasNonEmpty && !hasAnyScore(this.state)) {
+			this.renderViewMode();
+		} else {
+			this.refreshAllCells();
+		}
 		void this.persistState();
 	}
 

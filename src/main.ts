@@ -3,7 +3,9 @@ import { ARCHERY_EXTENSION, createScorecardFile } from './services/markdownSync'
 import {
 	ArcherySettingTab,
 	DEFAULT_SETTINGS,
+	getDefaultPreset,
 	normalizeSettings,
+	presetToConfig,
 	type ArcheryPluginSettings,
 } from './settings';
 import { ScorecardView, VIEW_TYPE_SCORECARD } from './views/ScorecardView';
@@ -16,7 +18,7 @@ export default class ArcheryPlugin extends Plugin {
 
 		this.registerView(
 			VIEW_TYPE_SCORECARD,
-			(leaf) => new ScorecardView(leaf),
+			(leaf) => new ScorecardView(leaf, this),
 		);
 
 		this.registerExtensions([ARCHERY_EXTENSION], VIEW_TYPE_SCORECARD);
@@ -56,13 +58,22 @@ export default class ArcheryPlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		this.settings = normalizeSettings({
 			...DEFAULT_SETTINGS,
-			...((await this.loadData()) as ArcheryPluginSettings | null),
+			...((await this.loadData()) as Partial<ArcheryPluginSettings> | null),
 		});
 	}
 
 	async saveSettings(): Promise<void> {
 		this.settings = normalizeSettings(this.settings);
 		await this.saveData(this.settings);
+		this.refreshScorecardViews();
+	}
+
+	refreshScorecardViews(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_SCORECARD)) {
+			if (leaf.view instanceof ScorecardView) {
+				leaf.view.onPresetsChanged();
+			}
+		}
 	}
 
 	getActiveScorecardView(): ScorecardView | null {
@@ -71,7 +82,8 @@ export default class ArcheryPlugin extends Plugin {
 	}
 
 	async createAndOpenScorecard(): Promise<void> {
-		const file = await createScorecardFile(this.app, this.settings);
+		const config = presetToConfig(getDefaultPreset(this.settings));
+		const file = await createScorecardFile(this.app, config);
 		if (!file) return;
 
 		const leaf = this.app.workspace.getLeaf(false);

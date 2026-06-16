@@ -173,6 +173,10 @@ function cloneState(state: SessionState): SessionState {
 	};
 }
 
+export function hasAnyScore(state: SessionState): boolean {
+	return lastFilledCursor(state) !== null;
+}
+
 export function applyScore(state: SessionState, value: number): SessionState {
 	const cursor = nextCursor(state);
 	if (!cursor) return state;

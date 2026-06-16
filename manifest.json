@@ -1,9 +1,9 @@
 {
 	"id": "obsidian-archery",
 	"name": "Obsidian Archery",
-	"version": "1.0.0",
+	"version": "1.0.3",
 	"minAppVersion": "1.0.0",
-	"description": "Archery scorecard with 6-end × 6-arrow tables and 1–10 button entry, synced to markdown notes.",
-	"author": "",
+	"description": "Simple rchery scorecard, synced to markdown notes.",
+	"author": "aris@rcore.co",
 	"isDesktopOnly": false
 }

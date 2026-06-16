@@ -10,7 +10,6 @@ import {
 	type SessionConfig,
 	type SessionState,
 } from '../model/scorecard';
-import type { ArcheryPluginSettings } from '../settings';
 
 export const MARKER_START = '<!-- archery-scorecard:start -->';
 export const MARKER_END = '<!-- archery-scorecard:end -->';
@@ -260,11 +259,7 @@ export async function saveSessionToFile(
 
 export async function createScorecardFile(
 	app: App,
-	settings: ArcheryPluginSettings = {
-		defaultEnds: DEFAULT_CONFIG.endsPerCard,
-		defaultArrows: DEFAULT_CONFIG.arrowsPerEnd,
-		defaultCards: DEFAULT_CONFIG.cardsCount,
-	},
+	config: SessionConfig = DEFAULT_CONFIG,
 ): Promise<TFile | null> {
 	const folder = app.fileManager.getNewFileParent('');
 	const dateLabel = formatDateForFilename();
@@ -277,14 +272,11 @@ export async function createScorecardFile(
 		counter++;
 	}
 
-	const config = normalizeConfig({
-		endsPerCard: settings.defaultEnds,
-		arrowsPerEnd: settings.defaultArrows,
-		cardsCount: settings.defaultCards,
-	});
-
 	try {
-		return await app.vault.create(path, serializeSession(createSessionState(config)));
+		return await app.vault.create(
+			path,
+			serializeSession(createSessionState(normalizeConfig(config))),
+		);
 	} catch {
 		new Notice('Could not create scorecard file.');
 		return null;
