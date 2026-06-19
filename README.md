@@ -72,4 +72,4 @@ Reload Obsidian after code changes (`Ctrl/Cmd + R`).
 
 ## License
 
-MIT
+[RChery Plugin License (Attribution Required)](LICENSE) — you may use and modify this plugin, but any distribution or derivative work must credit [rchery.app](https://rchery.app) and the [original RChery plugin](https://github.com/inlinkz/obsidian-rchery).

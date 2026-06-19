@@ -9,7 +9,7 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
 	},
 	"keywords": [],
-	"license": "MIT",
+	"license": "LicenseRef-RChery-Attribution-1.0",
 	"devDependencies": {
 		"@types/node": "^22.15.17",
 		"esbuild": "0.25.5",

@@ -4,24 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "52643f3a2898c773",
+        "id": "b770302589b75207",
         "type": "tabs",
         "children": [
           {
-            "id": "139ccef4fc16dfad",
+            "id": "4abddc21fc44ba74",
             "type": "leaf",
             "state": {
-              "type": "canvas",
-              "state": {
-                "file": "Canvas for rchery.canvas",
-                "viewState": {
-                  "x": -620,
-                  "y": -233.5,
-                  "zoom": 0
-                }
-              },
-              "icon": "lucide-layout-dashboard",
-              "title": "Canvas for rchery"
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
             }
           }
         ]
@@ -81,7 +74,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 548.5
   },
   "right": {
     "id": "a714c598fd5532fe",
@@ -185,15 +178,15 @@
       "rchery:New archery scorecard": false
     }
   },
-  "active": "684285d01c60ac29",
+  "active": "4abddc21fc44ba74",
   "lastOpenFiles": [
-    "Canvas for rchery.canvas",
-    "Charts of rchery.md",
-    "archery-stats-dashboard.md",
-    "Scorecard 2026-06-19 11-30.rchery",
     "Scorecard 2026-06-19 11-29.rchery",
+    "archery-stats-dashboard.md",
+    "Canvas for rchery.canvas",
+    "Scorecard 2026-06-19 11-30.rchery",
     "Scorecard 2026-06-19 10-51.rchery",
     "Scorecard 2026-06-19 09-54.rchery",
+    "Charts of rchery.md",
     "Welcome.md"
   ]
 }
