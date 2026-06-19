@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from 'obsidian';
 import type ArcheryPlugin from './main';
 import { CONFIG_LIMITS, normalizeConfig, type SessionConfig } from './model/scorecard';
 
@@ -112,97 +112,100 @@ export class ArcherySettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-
-		containerEl.createEl('h2', { text: 'Obsidian Archery' });
-		containerEl.createEl('p', {
-			text: 'Presets ("defaults") define named layouts that appear at the top of every scorecard. Each .rchery file still stores its own dimensions in the markup.',
-			cls: 'setting-item-description',
-		});
-
-		new Setting(containerEl)
-			.setName('Default for new scorecards')
-			.setDesc('Preset applied when you create a new scorecard.')
-			.addDropdown((dropdown) => {
-				for (const preset of getAllPresets(this.plugin.settings)) {
-					dropdown.addOption(preset.name, this.presetLabel(preset));
-				}
-				dropdown
-					.setValue(getDefaultPreset(this.plugin.settings).name)
-					.onChange(async (value) => {
-						this.plugin.settings.defaultPresetName = value;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		containerEl.createEl('h3', { text: 'Target face' });
-
-		new Setting(containerEl)
-			.setName('Touch offset')
-			.setDesc(
-				'Shifts the arrow and score this many pixels above your finger on the target so you can see where it lands on mobile.',
-			)
-			.addSlider((slider) =>
-				slider
-					.setLimits(TARGET_TOUCH_OFFSET_LIMITS.min, TARGET_TOUCH_OFFSET_LIMITS.max, 4)
-					.setValue(this.plugin.settings.targetTouchOffsetY)
-					.setDynamicTooltip()
-					.onChange(async (value) => {
-						this.plugin.settings.targetTouchOffsetY = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		containerEl.createEl('h3', { text: 'Built-in presets' });
-		for (const preset of BUILTIN_PRESETS) {
-			new Setting(containerEl)
-				.setName(preset.name)
-				.setDesc(this.presetLabel(preset));
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		const presetOptions: Record<string, string> = {};
+		for (const preset of getAllPresets(this.plugin.settings)) {
+			presetOptions[preset.name] = this.presetLabel(preset);
 		}
 
-		containerEl.createEl('h3', { text: 'Custom presets' });
-
-		if (this.plugin.settings.customPresets.length === 0) {
-			containerEl.createEl('p', {
-				text: 'No custom presets yet. Add one below.',
-				cls: 'setting-item-description',
-			});
-		}
-
-		this.plugin.settings.customPresets.forEach((preset, index) => {
-			this.renderPresetEditor(containerEl, preset, index);
-		});
-
-		new Setting(containerEl).addButton((button) =>
-			button
-				.setButtonText('Add preset')
-				.setCta()
-				.onClick(async () => {
-					this.plugin.settings.customPresets.push({
-						name: `Preset ${this.plugin.settings.customPresets.length + 1}`,
-						cardsCount: 2,
-						endsPerCard: 6,
-						arrowsPerEnd: 6,
-					});
+		return [
+			{
+				name: 'RChery',
+				desc: 'Presets ("defaults") define named layouts that appear at the top of every scorecard. Each .rchery file still stores its own dimensions in the markup.',
+			},
+			{
+				name: 'Default for new scorecards',
+				desc: 'Preset applied when you create a new scorecard.',
+				control: {
+					type: 'dropdown',
+					key: 'defaultPresetName',
+					options: presetOptions,
+				},
+			},
+			{
+				type: 'group',
+				heading: 'Target face',
+				items: [
+					{
+						name: 'Touch offset',
+						desc: 'Shifts the arrow and score this many pixels above your finger on the target so you can see where it lands on mobile.',
+						control: {
+							type: 'slider',
+							key: 'targetTouchOffsetY',
+							min: TARGET_TOUCH_OFFSET_LIMITS.min,
+							max: TARGET_TOUCH_OFFSET_LIMITS.max,
+							step: 4,
+						},
+					},
+				],
+			},
+			{
+				type: 'group',
+				heading: 'Built-in presets',
+				items: BUILTIN_PRESETS.map((preset) => ({
+					name: preset.name,
+					desc: this.presetLabel(preset),
+				})),
+			},
+			{
+				type: 'list',
+				heading: 'Custom presets',
+				emptyState: 'No custom presets yet. Add one below.',
+				items: this.plugin.settings.customPresets.map((preset, index) => ({
+					name: preset.name.trim() || `Preset ${index + 1}`,
+					render: (setting) => {
+						this.renderPresetEditor(setting, index);
+					},
+				})),
+				onDelete: async (index) => {
+					this.plugin.settings.customPresets.splice(index, 1);
 					await this.plugin.saveSettings();
 					this.plugin.refreshScorecardPresets();
-					this.display();
-				}),
-		);
+					this.update();
+				},
+				addItem: {
+					name: 'Add preset',
+					action: async () => {
+						this.plugin.settings.customPresets.push({
+							name: `Preset ${this.plugin.settings.customPresets.length + 1}`,
+							cardsCount: 2,
+							endsPerCard: 6,
+							arrowsPerEnd: 6,
+						});
+						await this.plugin.saveSettings();
+						this.plugin.refreshScorecardPresets();
+						this.update();
+					},
+				},
+			},
+		];
+	}
+
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		if (key === 'defaultPresetName' && typeof value === 'string') {
+			this.plugin.settings.defaultPresetName = value;
+		} else if (key === 'targetTouchOffsetY' && typeof value === 'number') {
+			this.plugin.settings.targetTouchOffsetY = value;
+		}
+		await this.plugin.saveSettings();
 	}
 
 	private presetLabel(preset: LayoutPreset): string {
 		return `${preset.cardsCount} cards × ${preset.endsPerCard} ends × ${preset.arrowsPerEnd} arrows`;
 	}
 
-	private renderPresetEditor(
-		containerEl: HTMLElement,
-		preset: LayoutPreset,
-		index: number,
-	): void {
-		const setting = new Setting(containerEl);
+	private renderPresetEditor(setting: Setting, index: number): void {
+		const preset = this.plugin.settings.customPresets[index]!;
 
 		setting.addText((text) =>
 			text
@@ -226,18 +229,6 @@ export class ArcherySettingTab extends PluginSettingTab {
 			this.plugin.settings.customPresets[index]!.arrowsPerEnd = value;
 			await this.plugin.saveSettings();
 		});
-
-		setting.addExtraButton((button) =>
-			button
-				.setIcon('trash')
-				.setTooltip('Delete preset')
-				.onClick(async () => {
-					this.plugin.settings.customPresets.splice(index, 1);
-					await this.plugin.saveSettings();
-					this.plugin.refreshScorecardPresets();
-					this.display();
-				}),
-		);
 	}
 
 	private addNumberDropdown(

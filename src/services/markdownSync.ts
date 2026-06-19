@@ -330,9 +330,9 @@ export async function createScorecardFile(
 	app: App,
 	config: SessionConfig = DEFAULT_CONFIG,
 ): Promise<TFile | null> {
-	const folder = app.fileManager.getNewFileParent('');
 	const dateLabel = formatDateForFilename();
 	const baseName = `Scorecard ${dateLabel}`;
+	const folder = app.fileManager.getNewFileParent('', `${baseName}.${ARCHERY_EXTENSION}`);
 	let path = `${folder.path}/${baseName}.${ARCHERY_EXTENSION}`;
 	let counter = 2;
 

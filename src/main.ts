@@ -33,16 +33,16 @@ export default class ArcheryPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'new-archery-scorecard',
-			name: 'New archery scorecard',
+			id: 'new-scorecard',
+			name: 'New scorecard',
 			callback: () => {
 				void this.createAndOpenScorecard();
 			},
 		});
 
 		this.addCommand({
-			id: 'reset-archery-scorecard',
-			name: 'Reset archery scorecard',
+			id: 'reset-scorecard',
+			name: 'Reset scorecard',
 			checkCallback: (checking) => {
 				const view = this.getActiveScorecardView();
 				if (!view) return false;
@@ -52,10 +52,6 @@ export default class ArcheryPlugin extends Plugin {
 				return true;
 			},
 		});
-	}
-
-	onunload(): void {
-		this.app.workspace.detachLeavesOfType(VIEW_TYPE_SCORECARD);
 	}
 
 	async loadSettings(): Promise<void> {

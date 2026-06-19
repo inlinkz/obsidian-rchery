@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 548.5
+    "width": 294.5
   },
   "right": {
     "id": "a714c598fd5532fe",
@@ -184,12 +184,13 @@
   },
   "active": "44480648d18d6a50",
   "lastOpenFiles": [
-    "Canvas for rchery.canvas",
+    "Scorecard 2026-06-19 14-55.rchery",
     "Scorecard 2026-06-19 10-51.rchery",
     "Scorecard 2026-06-19 09-54.rchery",
-    "Scorecard 2026-06-19 11-30.rchery",
     "Scorecard 2026-06-19 11-29.rchery",
+    "Canvas for rchery.canvas",
     "archery-stats-dashboard.md",
+    "Scorecard 2026-06-19 11-30.rchery",
     "Charts of rchery.md",
     "Welcome.md"
   ]

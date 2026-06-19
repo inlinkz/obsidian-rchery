@@ -1,7 +1,11 @@
 {
 	"nodes":[
 		{"id":"1c8b5524194a9774","type":"file","file":"Scorecard 2026-06-19 09-54.rchery","x":-960,"y":-440,"width":328,"height":413,"color":"2"},
-		{"id":"ba632ba604cee257","x":-600,"y":-440,"width":320,"height":413,"color":"4","type":"file","file":"Scorecard 2026-06-19 10-51.rchery"}
+		{"id":"ba632ba604cee257","type":"file","file":"Scorecard 2026-06-19 10-51.rchery","x":-600,"y":-440,"width":320,"height":413,"color":"4"},
+		{"id":"b3fa47880ed56ec9","x":-751,"y":-625,"width":250,"height":60,"type":"text","text":"# Canvas view"}
 	],
-	"edges":[]
+	"edges":[
+		{"id":"1036fc1a00e296a9","fromNode":"b3fa47880ed56ec9","fromSide":"bottom","toNode":"1c8b5524194a9774","toSide":"top"},
+		{"id":"48c6fe00d358e749","fromNode":"b3fa47880ed56ec9","fromSide":"bottom","toNode":"ba632ba604cee257","toSide":"top"}
+	]
 }
