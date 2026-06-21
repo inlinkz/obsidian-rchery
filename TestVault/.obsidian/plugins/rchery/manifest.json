@@ -1,8 +1,8 @@
 {
 	"id": "rchery",
 	"name": "RChery",
-	"version": "1.0.7",
-	"minAppVersion": "1.13.0",
+	"version": "1.0.8",
+	"minAppVersion": "1.12.0",
 	"description": "Simple RChery scorecard, synced to markdown notes.",
 	"author": "inlinkz",
 	"isDesktopOnly": false
