@@ -4,7 +4,13 @@ import {
 	scoreFromPoint,
 	TARGET_RADIUS,
 } from '../model/targetScoring';
-import { formatScore, nextCursor, type ArrowShot, type SessionState } from '../model/scorecard';
+import {
+	endColorClass,
+	formatScore,
+	nextCursor,
+	type ArrowShot,
+	type SessionState,
+} from '../model/scorecard';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -23,6 +29,7 @@ export class TargetFace {
 	private cardIndex: number;
 	private touchOffsetY: number;
 	private visibleEnds = new Set<number>();
+	private currentEndIndex: number | null = null;
 	private onPlace: (x: number, y: number, score: number) => void;
 	private dragging = false;
 	private active = false;
@@ -66,6 +73,8 @@ export class TargetFace {
 		this.visibleEnds = visibleEnds;
 
 		const cursor = nextCursor(state);
+		this.currentEndIndex =
+			cursor !== null && cursor.card === this.cardIndex ? cursor.end : null;
 		this.active = cursor !== null && cursor.card === this.cardIndex;
 		this.root.toggleClass('archery-target-face-active', this.active);
 		this.root.toggleClass('archery-target-face-inactive', !this.active);
@@ -106,16 +115,19 @@ export class TargetFace {
 			if (!end) continue;
 			for (const shot of end) {
 				if (shot.x === null || shot.y === null || shot.score === null) continue;
-				this.markersLayer.appendChild(this.createMarker(shot, false));
+				this.markersLayer.appendChild(this.createMarker(shot, false, endIndex));
 			}
 		}
 	}
 
-	private createMarker(shot: ArrowShot, preview: boolean): SVGGElement {
+	private createMarker(shot: ArrowShot, preview: boolean, endIndex: number): SVGGElement {
 		const group = this.doc.createElementNS(SVG_NS, 'g');
+		const colorClass = endColorClass(endIndex);
 		group.setAttribute(
 			'class',
-			preview ? 'archery-target-marker archery-target-marker-preview' : 'archery-target-marker',
+			preview
+				? `archery-target-marker archery-target-marker-preview ${colorClass}`
+				: `archery-target-marker ${colorClass}`,
 		);
 		group.setAttribute('transform', `translate(${shot.x}, ${-shot.y!})`);
 
@@ -174,7 +186,8 @@ export class TargetFace {
 		this.clearPreview();
 		if (score === null) return;
 
-		this.previewMarker = this.createMarker({ score, x, y }, true);
+		const endIndex = this.currentEndIndex ?? 0;
+		this.previewMarker = this.createMarker({ score, x, y }, true, endIndex);
 		this.markersLayer.appendChild(this.previewMarker);
 	}
 

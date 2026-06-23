@@ -167,6 +167,81 @@ function parseScorecardSection(section: string): {
 	return { ends, arrowsPerEnd };
 }
 
+const END_NOTES_HEADING = /^###\s*End notes\s*$/i;
+const END_NOTE_ITEM = /^####\s*(\d+)\.(\d+)\s*$/;
+
+function emptyEndNotes(config: SessionConfig): string[] {
+	return Array.from({ length: config.endsPerCard }, () => '');
+}
+
+function parseEndNotes(block: string, state: SessionState): SessionState {
+	const lines = block.split('\n');
+	let inNotes = false;
+	let currentCard = -1;
+	let currentEnd = -1;
+	let buffer: string[] = [];
+	const noteByKey = new Map<string, string>();
+
+	const flush = (): void => {
+		if (currentCard < 0 || currentEnd < 0) return;
+		const text = buffer.join('\n').trim();
+		if (text) {
+			noteByKey.set(`${currentCard}.${currentEnd}`, text);
+		}
+		buffer = [];
+	};
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (END_NOTES_HEADING.test(trimmed)) {
+			inNotes = true;
+			continue;
+		}
+		if (!inNotes) continue;
+		if (trimmed === MARKER_END) {
+			flush();
+			break;
+		}
+
+		const match = trimmed.match(END_NOTE_ITEM);
+		if (match) {
+			flush();
+			currentCard = Number.parseInt(match[1]!, 10) - 1;
+			currentEnd = Number.parseInt(match[2]!, 10) - 1;
+			continue;
+		}
+
+		if (currentCard >= 0 && currentEnd >= 0) {
+			buffer.push(line);
+		}
+	}
+
+	const cards = state.cards.map((card, cardIndex) => {
+		const endNotes = Array.from({ length: state.config.endsPerCard }, (_, endIndex) => {
+			return noteByKey.get(`${cardIndex}.${endIndex}`) ?? card.endNotes[endIndex] ?? '';
+		});
+		return { ...card, endNotes };
+	});
+
+	return { ...state, cards };
+}
+
+function buildEndNotesSection(state: SessionState): string[] {
+	const items: string[] = [];
+
+	for (let cardIndex = 0; cardIndex < state.config.cardsCount; cardIndex++) {
+		const notes = state.cards[cardIndex]?.endNotes ?? [];
+		for (let endIndex = 0; endIndex < state.config.endsPerCard; endIndex++) {
+			const text = notes[endIndex]?.trim();
+			if (!text) continue;
+			items.push(`#### ${cardIndex + 1}.${endIndex + 1}`, text, '');
+		}
+	}
+
+	if (items.length === 0) return [];
+	return ['### End notes', '', ...items];
+}
+
 function padScorecard(
 	ends: ArrowShot[][],
 	config: SessionConfig,
@@ -230,10 +305,11 @@ export function parseScorecardBlock(content: string): SessionState | null {
 		const parsed = parsedCards[cardIndex];
 		state.cards[cardIndex] = {
 			ends: padScorecard(parsed?.ends ?? [], inferredConfig),
+			endNotes: emptyEndNotes(inferredConfig),
 		};
 	}
 
-	return state;
+	return parseEndNotes(block, state);
 }
 
 export function buildScorecardBlock(state: SessionState): string {
@@ -276,6 +352,7 @@ export function buildScorecardBlock(state: SessionState): string {
 
 	lines.push(`**Grand total:** ${sessionGrandTotalFromState(state)}`);
 	lines.push('');
+	lines.push(...buildEndNotesSection(state));
 	lines.push(MARKER_END);
 
 	return lines.join('\n');

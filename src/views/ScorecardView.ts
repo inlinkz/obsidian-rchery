@@ -3,18 +3,22 @@ import type ArcheryPlugin from '../main';
 import {
 	applyScore,
 	applyScoreAt,
+	applyEndColorClass,
 	applyScoreColorClass,
 	cardGrandTotal,
 	createSessionState,
 	endIsComplete,
 	endTotal,
 	formatScore,
+	getEndNote,
 	gridColumnStyle,
 	hasAnyScore,
+	hasEndNote,
 	MISS_SCORE,
 	nextCursor,
 	resizeSessionState,
 	scoreColorClass,
+	setEndNote,
 	shotHasPlacement,
 	sessionGrandTotal,
 	undoLast,
@@ -26,6 +30,7 @@ import {
 	serializeSession,
 } from '../services/markdownSync';
 import { getAllPresets, type LayoutPreset } from '../settings';
+import { EndNoteModal } from './EndNoteModal';
 import { TargetFace } from './TargetFace';
 
 export const VIEW_TYPE_SCORECARD = 'obsidian-archery-scorecard';
@@ -36,12 +41,14 @@ interface CellRef {
 	el: HTMLElement;
 }
 
-interface EndTotalRef {
+interface EndLabelRef {
 	el: HTMLElement;
 }
 
-interface EndLabelRef {
+interface EndTotalRef {
 	el: HTMLElement;
+	valueEl: HTMLElement;
+	visibilityZone?: HTMLElement;
 }
 
 export class ScorecardView extends FileView {
@@ -236,9 +243,7 @@ export class ScorecardView extends FileView {
 		undoBtn.addEventListener('click', () => this.handleUndo());
 
 		this.refreshAllCells();
-		if (this.showTargetFace) {
-			this.refreshEndLabels();
-		}
+		this.refreshEndLabels();
 	}
 
 	private ensureVisibleEnds(): void {
@@ -280,6 +285,16 @@ export class ScorecardView extends FileView {
 		this.refreshTargetFaces();
 	}
 
+	private openEndNote(cardIndex: number, endIndex: number): void {
+		const title = `Scorecard ${cardIndex + 1} · End ${endIndex + 1}`;
+		const current = getEndNote(this.state, cardIndex, endIndex);
+		new EndNoteModal(this.app, title, current, (note) => {
+			this.state = setEndNote(this.state, cardIndex, endIndex, note);
+			this.refreshEndLabels(cardIndex);
+			void this.persistState();
+		}).open();
+	}
+
 	private refreshEndLabels(cardIndex?: number): void {
 		const cards =
 			cardIndex === undefined
@@ -287,15 +302,31 @@ export class ScorecardView extends FileView {
 				: [cardIndex];
 
 		for (const card of cards) {
-			const visible = this.visibleEndsPerCard[card];
+			const visible = this.visibleEndsPerCard[card] ?? new Set();
 			const labels = this.endLabelRefs[card];
-			if (!visible || !labels) continue;
+			const totals = this.endTotalRefs[card];
+			if (!labels) continue;
+
 			for (let end = 0; end < labels.length; end++) {
-				const ref = labels[end];
-				if (!ref) continue;
+				const labelRef = labels[end];
+				if (!labelRef) continue;
+
+				const hasNote = hasEndNote(this.state, card, end);
+				labelRef.el.toggleClass('archery-end-has-note', hasNote);
+				const noteTitle = hasNote
+					? `Edit note for end ${end + 1}`
+					: `Add note for end ${end + 1}`;
+				labelRef.el.title = noteTitle;
+
+				const totalRef = totals?.[end];
+				const visibilityZone = totalRef?.visibilityZone;
+				if (!visibilityZone) continue;
+
 				const onTarget = visible.has(end);
-				ref.el.toggleClass('archery-end-on-target', onTarget);
-				ref.el.title = onTarget
+				applyEndColorClass(visibilityZone, end);
+				visibilityZone.toggleClass('archery-end-visibility-on', onTarget);
+				visibilityZone.toggleClass('archery-end-visibility-off', !onTarget);
+				visibilityZone.title = onTarget
 					? `End ${end + 1} shown on target — click to hide`
 					: `End ${end + 1} hidden on target — click to show`;
 			}
@@ -523,15 +554,13 @@ export class ScorecardView extends FileView {
 		for (let end = 0; end < config.endsPerCard; end++) {
 			const row = grid.createDiv({ cls: 'archery-grid-row' });
 			row.style.gridTemplateColumns = gridColumnStyle(config.arrowsPerEnd);
-			const endLabel = row.createDiv({
-				cls: 'archery-cell archery-cell-label',
-				text: String(end + 1),
+
+			const noteBtn = row.createDiv({
+				cls: 'archery-cell archery-cell-label archery-end-note-btn',
 			});
-			if (this.showTargetFace) {
-				endLabel.addClass('archery-end-label-toggle');
-			}
-			endLabel.addEventListener('click', () => this.toggleEndVisibility(cardIndex, end));
-			this.endLabelRefs[cardIndex]![end] = { el: endLabel };
+			setIcon(noteBtn.createSpan({ cls: 'archery-end-note-icon' }), 'sticky-note');
+			noteBtn.addEventListener('click', () => this.openEndNote(cardIndex, end));
+			this.endLabelRefs[cardIndex]![end] = { el: noteBtn };
 
 			const arrowCells: CellRef[] = [];
 			for (let arrow = 0; arrow < config.arrowsPerEnd; arrow++) {
@@ -541,9 +570,25 @@ export class ScorecardView extends FileView {
 			}
 			this.cellRefs[cardIndex]![end] = arrowCells;
 
-			const totalCell = row.createDiv({ cls: 'archery-cell archery-cell-total' });
-			totalCell.setText('');
-			this.endTotalRefs[cardIndex]![end] = { el: totalCell };
+			if (this.showTargetFace) {
+				const totalCell = row.createDiv({
+					cls: 'archery-cell archery-cell-total archery-end-total-cell',
+				});
+				const valueEl = totalCell.createSpan({ cls: 'archery-end-total-value' });
+				const visibilityZone = totalCell.createDiv({ cls: 'archery-end-visibility-btn' });
+				visibilityZone.createSpan({
+					cls: 'archery-end-visibility-number',
+					text: String(end + 1),
+				});
+				visibilityZone.addEventListener('click', (event) => {
+					event.stopPropagation();
+					this.toggleEndVisibility(cardIndex, end);
+				});
+				this.endTotalRefs[cardIndex]![end] = { el: totalCell, valueEl, visibilityZone };
+			} else {
+				const totalCell = row.createDiv({ cls: 'archery-cell archery-cell-total' });
+				this.endTotalRefs[cardIndex]![end] = { el: totalCell, valueEl: totalCell };
+			}
 		}
 	}
 
@@ -624,7 +669,7 @@ export class ScorecardView extends FileView {
 				const totalRef = this.endTotalRefs[card]?.[end];
 				if (totalRef) {
 					const hasAny = arrows.some((shot) => shot.score !== null);
-					totalRef.el.setText(hasAny ? String(endTotal(arrows)) : '');
+					totalRef.valueEl.setText(hasAny ? String(endTotal(arrows)) : '');
 					totalRef.el.toggleClass('archery-cell-complete', endIsComplete(arrows));
 				}
 			}

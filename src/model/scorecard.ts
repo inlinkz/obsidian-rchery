@@ -75,6 +75,26 @@ const SCORE_COLOR_CLASSES = [
 	'archery-score-miss',
 ] as const;
 
+export const END_COLOR_COUNT = 12;
+
+export const END_COLOR_CLASSES = Array.from(
+	{ length: END_COLOR_COUNT },
+	(_, i) => `archery-end-color-${i}`,
+) as readonly string[];
+
+export function endColorClass(endIndex: number): string {
+	return `archery-end-color-${endIndex % END_COLOR_COUNT}`;
+}
+
+export function applyEndColorClass(el: HTMLElement, endIndex: number | null): void {
+	for (const cls of END_COLOR_CLASSES) {
+		el.removeClass(cls);
+	}
+	if (endIndex !== null) {
+		el.addClass(endColorClass(endIndex));
+	}
+}
+
 export const CONFIG_LIMITS = {
 	endsPerCard: { min: 1, max: 60 },
 	arrowsPerEnd: { min: 1, max: 24 },
@@ -131,6 +151,7 @@ export function applyScoreColorClass(el: HTMLElement, score: ArrowScore): void {
 
 export interface Scorecard {
 	ends: ArrowShot[][];
+	endNotes: string[];
 }
 
 export interface Cursor {
@@ -149,7 +170,31 @@ export function createEmptyScorecard(config: SessionConfig): Scorecard {
 		ends: Array.from({ length: config.endsPerCard }, () =>
 			Array.from({ length: config.arrowsPerEnd }, () => emptyArrow()),
 		),
+		endNotes: Array.from({ length: config.endsPerCard }, () => ''),
 	};
+}
+
+export function getEndNote(state: SessionState, card: number, end: number): string {
+	return state.cards[card]?.endNotes[end] ?? '';
+}
+
+export function hasEndNote(state: SessionState, card: number, end: number): boolean {
+	return getEndNote(state, card, end).trim().length > 0;
+}
+
+export function setEndNote(
+	state: SessionState,
+	card: number,
+	end: number,
+	note: string,
+): SessionState {
+	const cards = state.cards.map((scorecard, cardIndex) => {
+		if (cardIndex !== card) return scorecard;
+		const endNotes = [...scorecard.endNotes];
+		endNotes[end] = note;
+		return { ...scorecard, endNotes };
+	});
+	return { ...state, cards };
 }
 
 export function createSessionState(config: SessionConfig = DEFAULT_CONFIG): SessionState {
@@ -272,6 +317,7 @@ function cloneState(state: SessionState): SessionState {
 		config: { ...state.config },
 		cards: state.cards.map((card) => ({
 			ends: card.ends.map((end) => end.map((shot) => ({ ...shot }))),
+			endNotes: [...card.endNotes],
 		})),
 	};
 }
@@ -358,7 +404,13 @@ export function resizeSessionState(
 			ends.push(row);
 		}
 
-		cards.push({ ends });
+		const oldNotes = oldCard?.endNotes ?? [];
+		const endNotes = Array.from(
+			{ length: config.endsPerCard },
+			(_, endIndex) => oldNotes[endIndex] ?? '',
+		);
+
+		cards.push({ ends, endNotes });
 	}
 
 	return { config, cards };
