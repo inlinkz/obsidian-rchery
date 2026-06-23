@@ -141,7 +141,7 @@ export class ArcherySettingTab extends PluginSettingTab {
 					});
 			});
 
-		containerEl.createEl('h3', { text: 'Target face' });
+		new Setting(containerEl).setName('Target face').setHeading();
 
 		new Setting(containerEl)
 			.setName('Touch offset')
@@ -163,14 +163,14 @@ export class ArcherySettingTab extends PluginSettingTab {
 					});
 			});
 
-		containerEl.createEl('h3', { text: 'Built-in presets' });
+		new Setting(containerEl).setName('Built-in presets').setHeading();
 		for (const preset of BUILTIN_PRESETS) {
 			new Setting(containerEl)
 				.setName(preset.name)
 				.setDesc(this.presetLabel(preset));
 		}
 
-		containerEl.createEl('h3', { text: 'Custom presets' });
+		new Setting(containerEl).setName('Custom presets').setHeading();
 
 		if (this.plugin.settings.customPresets.length === 0) {
 			containerEl.createEl('p', {
