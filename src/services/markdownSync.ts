@@ -1,4 +1,4 @@
-import { Notice } from 'obsidian';
+import { Notice, TFolder } from 'obsidian';
 import type { TFile } from 'obsidian';
 import type { App } from 'obsidian';
 import {
@@ -14,6 +14,7 @@ import {
 	type SessionState,
 } from '../model/scorecard';
 import { roundCoord } from '../model/targetScoring';
+import { normalizeScorecardFolder } from '../settings';
 
 export const MARKER_START = '<!-- archery-scorecard:start -->';
 export const MARKER_END = '<!-- archery-scorecard:end -->';
@@ -406,10 +407,11 @@ export async function saveSessionToFile(
 export async function createScorecardFile(
 	app: App,
 	config: SessionConfig = DEFAULT_CONFIG,
+	defaultFolder = '',
 ): Promise<TFile | null> {
 	const dateLabel = formatDateForFilename();
 	const baseName = `Scorecard ${dateLabel}`;
-	const folder = app.fileManager.getNewFileParent('', `${baseName}.${ARCHERY_EXTENSION}`);
+	const folder = resolveScorecardParentFolder(app, defaultFolder);
 	let path = `${folder.path}/${baseName}.${ARCHERY_EXTENSION}`;
 	let counter = 2;
 
@@ -427,4 +429,14 @@ export async function createScorecardFile(
 		new Notice('Could not create scorecard file.');
 		return null;
 	}
+}
+
+function resolveScorecardParentFolder(app: App, configuredFolder: string): TFolder {
+	const folderPath = normalizeScorecardFolder(configuredFolder);
+	if (folderPath) {
+		const folder = app.vault.getAbstractFileByPath(folderPath);
+		if (folder instanceof TFolder) return folder;
+		new Notice(`Scorecard folder not found: ${folderPath}. Using default location.`);
+	}
+	return app.fileManager.getNewFileParent('', `Scorecard.${ARCHERY_EXTENSION}`);
 }

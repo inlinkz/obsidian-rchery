@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type ArcheryPlugin from './main';
+import { FolderSuggest } from './components/FolderSuggest';
 import { CONFIG_LIMITS, normalizeConfig, type SessionConfig } from './model/scorecard';
 
 export interface LayoutPreset {
@@ -17,6 +18,8 @@ export const BUILTIN_PRESETS: LayoutPreset[] = [
 export interface ArcheryPluginSettings {
 	customPresets: LayoutPreset[];
 	defaultPresetName: string;
+	/** Vault folder path for new scorecards; empty uses Obsidian's default. */
+	defaultScorecardFolder: string;
 	/** Pixels to shift the drag preview above the finger (score still at touch point). */
 	targetTouchOffsetY: number;
 }
@@ -24,10 +27,15 @@ export interface ArcheryPluginSettings {
 export const DEFAULT_SETTINGS: ArcheryPluginSettings = {
 	customPresets: [],
 	defaultPresetName: 'Outdoor',
+	defaultScorecardFolder: '',
 	targetTouchOffsetY: 48,
 };
 
 const TARGET_TOUCH_OFFSET_LIMITS = { min: 0, max: 200 } as const;
+
+export function normalizeScorecardFolder(path: string): string {
+	return path.trim().replace(/^\/+|\/+$/g, '');
+}
 
 function normalizePreset(preset: Partial<LayoutPreset>): LayoutPreset {
 	const config = normalizeConfig({
@@ -53,6 +61,9 @@ export function normalizeSettings(
 	return {
 		customPresets,
 		defaultPresetName: settings.defaultPresetName ?? DEFAULT_SETTINGS.defaultPresetName,
+		defaultScorecardFolder: normalizeScorecardFolder(
+			settings.defaultScorecardFolder ?? DEFAULT_SETTINGS.defaultScorecardFolder,
+		),
 		targetTouchOffsetY: Math.min(
 			TARGET_TOUCH_OFFSET_LIMITS.max,
 			Math.max(TARGET_TOUCH_OFFSET_LIMITS.min, Math.round(offset)),
@@ -125,6 +136,22 @@ export class ArcherySettingTab extends PluginSettingTab {
 		for (const preset of getAllPresets(this.plugin.settings)) {
 			presetOptions[preset.name] = this.presetLabel(preset);
 		}
+
+		new Setting(containerEl)
+			.setName('Default folder')
+			.setDesc(
+				'Folder where new scorecards are created. Leave empty to use Obsidian’s default new-file location.',
+			)
+			.addSearch((search) => {
+				new FolderSuggest(this.app, search.inputEl);
+				search
+					.setPlaceholder('e.g. Archery/Scorecards')
+					.setValue(this.plugin.settings.defaultScorecardFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.defaultScorecardFolder = normalizeScorecardFolder(value);
+						await this.plugin.saveSettings();
+					});
+			});
 
 		new Setting(containerEl)
 			.setName('Default for new scorecards')
