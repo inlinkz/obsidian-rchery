@@ -56,17 +56,18 @@ export class TargetFace {
 		this.markersLayer.setAttribute('class', 'archery-target-markers');
 		this.svg.appendChild(this.markersLayer);
 
-		this.svg.addEventListener('pointerdown', this.onPointerDown);
-		this.svg.addEventListener('pointermove', this.onPointerMove);
+		const pointerOpts: AddEventListenerOptions = { passive: false };
+		this.svg.addEventListener('pointerdown', this.onPointerDown, pointerOpts);
+		this.svg.addEventListener('pointermove', this.onPointerMove, pointerOpts);
 		this.svg.addEventListener('pointerup', this.onPointerUp);
-		this.svg.addEventListener('pointerleave', this.onPointerLeave);
+		this.svg.addEventListener('pointercancel', this.onPointerCancel);
 	}
 
 	destroy(): void {
 		this.svg.removeEventListener('pointerdown', this.onPointerDown);
 		this.svg.removeEventListener('pointermove', this.onPointerMove);
 		this.svg.removeEventListener('pointerup', this.onPointerUp);
-		this.svg.removeEventListener('pointerleave', this.onPointerLeave);
+		this.svg.removeEventListener('pointercancel', this.onPointerCancel);
 		this.root.remove();
 	}
 
@@ -162,14 +163,18 @@ export class TargetFace {
 	}
 
 	private onPointerDown = (event: PointerEvent): void => {
-		if (!this.active || event.button !== 0) return;
+		if (!this.active) return;
+		if (event.pointerType === 'mouse' && event.button !== 0) return;
+		event.preventDefault();
 		this.dragging = true;
+		this.root.addClass('archery-target-face-dragging');
 		this.svg.setPointerCapture(event.pointerId);
 		this.updatePreview(event.clientX, event.clientY);
 	};
 
 	private onPointerMove = (event: PointerEvent): void => {
 		if (!this.dragging) return;
+		event.preventDefault();
 		this.updatePreview(event.clientX, event.clientY);
 	};
 
@@ -179,8 +184,7 @@ export class TargetFace {
 
 	private onPointerUp = (event: PointerEvent): void => {
 		if (!this.dragging) return;
-		this.dragging = false;
-		this.svg.releasePointerCapture(event.pointerId);
+		this.endDrag(event.pointerId);
 
 		const { x, y } = this.arrowCoordsFromTouch(event.clientX, event.clientY);
 		const score = scoreFromPoint(x, y);
@@ -190,10 +194,19 @@ export class TargetFace {
 		}
 	};
 
-	private onPointerLeave = (): void => {
+	private onPointerCancel = (event: PointerEvent): void => {
 		if (!this.dragging) return;
+		this.endDrag(event.pointerId);
 		this.clearPreview();
 	};
+
+	private endDrag(pointerId: number): void {
+		this.dragging = false;
+		this.root.removeClass('archery-target-face-dragging');
+		if (this.svg.hasPointerCapture(pointerId)) {
+			this.svg.releasePointerCapture(pointerId);
+		}
+	}
 
 	private updatePreview(clientX: number, clientY: number): void {
 		const { x, y } = this.arrowCoordsFromTouch(clientX, clientY);

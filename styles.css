@@ -766,6 +766,15 @@
 	height: auto;
 }
 
+.archery-target-face-active .archery-target-svg {
+	touch-action: none;
+}
+
+.archery-target-face-dragging {
+	user-select: none;
+	-webkit-user-select: none;
+}
+
 .archery-target-ring {
 	stroke: rgba(0, 0, 0, 0.35);
 	stroke-width: 0.06;
