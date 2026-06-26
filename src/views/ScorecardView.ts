@@ -31,7 +31,10 @@ import {
 	serializeSession,
 } from '../services/markdownSync';
 import { getAllPresets, type LayoutPreset } from '../settings';
+import { isScoreFilterActive, describeScoreFilter, type ScoreFilter, EMPTY_SCORE_FILTER } from '../model/scoreFilter';
 import { EndNoteModal } from './EndNoteModal';
+import { EndEllipseModal } from './EndEllipseModal';
+import { ScoreFilterModal } from './ScoreFilterModal';
 import { renderSessionReview } from './renderSessionReview';
 import { TargetFace } from './TargetFace';
 
@@ -64,6 +67,8 @@ export class ScorecardView extends FileView {
 	private headerEl: HTMLElement | null = null;
 	private modeActionBtn: HTMLElement | null = null;
 	private targetActionBtn: HTMLElement | null = null;
+	private filterActionBtn: HTMLElement | null = null;
+	private ellipseActionBtn: HTMLElement | null = null;
 	private reviewActionBtn: HTMLElement | null = null;
 	private viewContainer: HTMLElement | null = null;
 	private scrollBodyEl: HTMLElement | null = null;
@@ -79,6 +84,7 @@ export class ScorecardView extends FileView {
 	private arrowHeaderRefs: HTMLElement[][] = [];
 	private visibleEndsPerCard: Set<number>[] = [];
 	private visibleArrowsPerCard: Set<number>[] = [];
+	private scoreFilter: ScoreFilter = { ...EMPTY_SCORE_FILTER };
 
 	constructor(leaf: WorkspaceLeaf, plugin: ArcheryPlugin) {
 		super(leaf);
@@ -96,8 +102,11 @@ export class ScorecardView extends FileView {
 	}
 
 	onSettingsChanged(): void {
-		if (this.file && this.mode === 'view' && this.showTargetFace) {
-			this.refreshTargetFaces();
+		if (this.file && this.mode === 'view') {
+			if (this.showTargetFace) {
+				this.refreshTargetFaces();
+			}
+			this.updateModeUi();
 		}
 	}
 
@@ -112,6 +121,8 @@ export class ScorecardView extends FileView {
 	async onOpen(): Promise<void> {
 		this.ensureModeAction();
 		this.ensureTargetAction();
+		this.ensureFilterAction();
+		this.ensureEllipseAction();
 		this.ensureReviewAction();
 		this.updateModeUi();
 	}
@@ -128,6 +139,57 @@ export class ScorecardView extends FileView {
 		this.targetActionBtn = this.addAction('target', 'Show target face', () => {
 			this.toggleTargetFace();
 		});
+	}
+
+	private ensureFilterAction(): void {
+		if (this.filterActionBtn) return;
+		this.filterActionBtn = this.addAction('filter', 'Filter arrows by score', () => {
+			this.openScoreFilterModal();
+		});
+		this.filterActionBtn.addClass('archery-score-filter-action');
+	}
+
+	private openScoreFilterModal(): void {
+		if (this.mode !== 'view') return;
+		new ScoreFilterModal(this.app, this.state, this.scoreFilter, (filter) => {
+			this.applyScoreFilter(filter);
+		}).open();
+	}
+
+	private applyScoreFilter(filter: ScoreFilter): void {
+		this.scoreFilter = filter;
+		if (isScoreFilterActive(filter) && !this.showTargetFace) {
+			this.showTargetFace = true;
+			this.initVisibleEnds();
+			this.initVisibleArrows();
+			this.renderViewMode();
+		} else {
+			this.refreshTargetFaces();
+		}
+		this.updateModeUi();
+	}
+
+	private ensureEllipseAction(): void {
+		if (this.ellipseActionBtn) return;
+		this.ellipseActionBtn = this.addAction('eye', 'End group ellipses', () => {
+			this.openEndEllipseModal();
+		});
+		this.ellipseActionBtn.addClass('archery-end-ellipse-action');
+	}
+
+	private openEndEllipseModal(): void {
+		if (this.mode !== 'view') return;
+		new EndEllipseModal(this.app, this.plugin, () => {
+			if (this.plugin.settings.showEndEllipses && !this.showTargetFace) {
+				this.showTargetFace = true;
+				this.initVisibleEnds();
+				this.initVisibleArrows();
+				this.renderViewMode();
+			} else {
+				this.refreshTargetFaces();
+			}
+			this.updateModeUi();
+		}).open();
 	}
 
 	private ensureReviewAction(): void {
@@ -163,6 +225,7 @@ export class ScorecardView extends FileView {
 		this.state = parseScorecardBlock(content) ?? createSessionState();
 		this.mode = 'view';
 		this.showReview = false;
+		this.scoreFilter = { ...EMPTY_SCORE_FILTER };
 		this.visibleEndsPerCard = [];
 		this.visibleArrowsPerCard = [];
 		this.render();
@@ -289,7 +352,14 @@ export class ScorecardView extends FileView {
 		if (!this.viewContainer) return;
 		this.reviewComponent.load();
 		const wrap = this.viewContainer.createDiv({ cls: 'archery-session-review-inline' });
-		renderSessionReview(wrap, this.state, this.file?.path ?? '', this.reviewComponent);
+		renderSessionReview(
+			wrap,
+			this.state,
+			this.file?.path ?? '',
+			this.reviewComponent,
+			this.plugin.settings.targetShotMarkerSize,
+			this.plugin.settings.showShotScores,
+		);
 	}
 
 	private ensureVisibleEnds(): void {
@@ -491,7 +561,16 @@ export class ScorecardView extends FileView {
 			if (!face) continue;
 			const visible = this.visibleEndsPerCard[cardIndex] ?? new Set();
 			const visibleArrows = this.visibleArrowsPerCard[cardIndex] ?? new Set();
-			face.update(this.state, visible, visibleArrows, offset);
+			face.update(
+				this.state,
+				visible,
+				visibleArrows,
+				offset,
+				this.scoreFilter,
+				this.plugin.settings.showEndEllipses,
+				this.plugin.settings.targetShotMarkerSize,
+				this.plugin.settings.showShotScores,
+			);
 		}
 	}
 
@@ -624,6 +703,26 @@ export class ScorecardView extends FileView {
 				this.showTargetFace ? 'Hide target face' : 'Show target face',
 			);
 		}
+		if (this.filterActionBtn) {
+			const inView = this.mode === 'view';
+			this.filterActionBtn.style.display = inView ? '' : 'none';
+			const active = isScoreFilterActive(this.scoreFilter);
+			this.filterActionBtn.toggleClass('is-active', active);
+			this.filterActionBtn.setAttribute(
+				'aria-label',
+				active ? 'Score filter active — click to edit' : 'Filter arrows by score',
+			);
+		}
+		if (this.ellipseActionBtn) {
+			const inView = this.mode === 'view';
+			this.ellipseActionBtn.style.display = inView ? '' : 'none';
+			const active = this.plugin.settings.showEndEllipses;
+			this.ellipseActionBtn.toggleClass('is-active', active);
+			this.ellipseActionBtn.setAttribute(
+				'aria-label',
+				active ? 'End ellipses on — click to configure' : 'End group ellipses',
+			);
+		}
 		if (this.reviewActionBtn) {
 			this.reviewActionBtn.style.display = this.mode === 'view' ? '' : 'none';
 			this.reviewActionBtn.toggleClass('is-active', this.showReview);
@@ -699,8 +798,23 @@ export class ScorecardView extends FileView {
 			});
 			const visible = this.visibleEndsPerCard[cardIndex] ?? new Set();
 			const visibleArrows = this.visibleArrowsPerCard[cardIndex] ?? new Set();
-			face.update(this.state, visible, visibleArrows, this.plugin.settings.targetTouchOffsetY);
+			face.update(
+				this.state,
+				visible,
+				visibleArrows,
+				this.plugin.settings.targetTouchOffsetY,
+				this.scoreFilter,
+				this.plugin.settings.showEndEllipses,
+				this.plugin.settings.targetShotMarkerSize,
+				this.plugin.settings.showShotScores,
+			);
 			this.targetFaces.push(face);
+			if (isScoreFilterActive(this.scoreFilter)) {
+				targetWrap.createDiv({
+					cls: 'archery-score-filter-label',
+					text: describeScoreFilter(this.scoreFilter),
+				});
+			}
 		}
 
 		const grid = section.createDiv({ cls: 'archery-scorecard-grid' });

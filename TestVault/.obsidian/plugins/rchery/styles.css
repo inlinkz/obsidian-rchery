@@ -816,6 +816,15 @@
 	fill: var(--archery-end-color);
 }
 
+.archery-target-marker-dot-minimal {
+	fill: #1a1a1a !important;
+	stroke: none !important;
+}
+
+.archery-target-marker[class*='archery-end-color-'] .archery-target-marker-dot-minimal {
+	fill: #1a1a1a !important;
+}
+
 .archery-target-marker-label {
 	fill: #1a1a1a;
 	font-size: 0.85px;
@@ -829,6 +838,210 @@
 
 .archery-target-marker-preview .archery-target-marker-dot {
 	stroke: #ffffff;
+}
+
+.archery-target-face-filtering {
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 55%, transparent);
+	border-radius: 50%;
+}
+
+.archery-target-marker-filtered .archery-target-marker-dot {
+	stroke-width: 0.12;
+}
+
+.archery-target-marker-filtered .archery-target-marker-label {
+	font-weight: 800;
+}
+
+.archery-target-end-ellipse {
+	fill: color-mix(in srgb, var(--archery-end-color) 28%, transparent);
+	stroke: var(--archery-end-color);
+	stroke-width: 0.1;
+	opacity: 0.62;
+	pointer-events: none;
+}
+
+.view-action.archery-end-ellipse-action.is-active {
+	color: var(--interactive-accent);
+}
+
+.archery-end-ellipse-modal-container {
+	width: min(34rem, 92vw);
+	max-width: 92vw;
+}
+
+.archery-end-ellipse-modal .archery-end-ellipse-hint {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	margin-bottom: 0.75rem;
+}
+
+.archery-end-ellipse-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.archery-score-filter-label {
+	margin-top: 0.35rem;
+	text-align: center;
+	font-size: 0.8em;
+	font-weight: 600;
+	color: var(--interactive-accent);
+}
+
+.view-action.archery-score-filter-action.is-active {
+	color: #fff;
+	background-color: #b71c1c;
+	border-radius: 4px;
+}
+
+.view-action.archery-score-filter-action.is-active svg {
+	color: #fff;
+}
+
+.archery-score-range-slider-wrap {
+	margin: 0.5rem 0 1rem;
+}
+
+.archery-score-range-slider {
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+}
+
+.archery-score-range-values {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	font-size: 0.9em;
+	font-weight: 600;
+}
+
+.archery-score-range-value-min {
+	color: var(--text-muted);
+}
+
+.archery-score-range-value-max {
+	color: var(--text-normal);
+	text-align: right;
+}
+
+.archery-score-range-track {
+	position: relative;
+	height: 2rem;
+	margin: 0 0.55rem;
+	touch-action: none;
+}
+
+.archery-score-range-track::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 0.35rem;
+	transform: translateY(-50%);
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+}
+
+.archery-score-range-fill {
+	position: absolute;
+	top: 50%;
+	height: 0.35rem;
+	transform: translateY(-50%);
+	border-radius: 999px;
+	background: var(--interactive-accent);
+	pointer-events: none;
+}
+
+.archery-score-range-handle {
+	position: absolute;
+	top: 50%;
+	width: 1.15rem;
+	height: 1.15rem;
+	margin-left: -0.575rem;
+	transform: translateY(-50%);
+	border-radius: 50%;
+	border: 2px solid #fff;
+	background: var(--interactive-accent);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+	cursor: grab;
+	touch-action: none;
+	z-index: 2;
+}
+
+.archery-score-range-handle:active {
+	cursor: grabbing;
+}
+
+.archery-score-range-handle-max {
+	background: #1565c0;
+}
+
+.archery-score-range-ticks {
+	display: grid;
+	grid-template-columns: repeat(11, 1fr);
+	gap: 0;
+	padding: 0 0.55rem;
+}
+
+.archery-score-range-tick {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2rem;
+	min-width: 0;
+}
+
+.archery-score-range-tick-mark {
+	width: 1px;
+	height: 0.35rem;
+	background: var(--background-modifier-border);
+}
+
+.archery-score-range-tick-label {
+	font-size: 0.68em;
+	color: var(--text-muted);
+	line-height: 1;
+}
+
+.archery-score-filter-modal-container {
+	width: min(28rem, 92vw);
+	max-width: 92vw;
+}
+
+.archery-score-filter-modal .archery-score-filter-hint {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	margin-bottom: 0.75rem;
+}
+
+.archery-score-filter-preview {
+	margin: 0.75rem 0 1rem;
+	padding: 0.65rem 0.75rem;
+	border-radius: 6px;
+	background: var(--background-secondary);
+}
+
+.archery-score-filter-preview-summary {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.archery-score-filter-preview-count {
+	margin-top: 0.2rem;
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+.archery-score-filter-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
 }
 
 .archery-embed {

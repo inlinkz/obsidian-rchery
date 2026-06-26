@@ -1,4 +1,5 @@
 import { Component, type App, type TFile } from 'obsidian';
+import type ArcheryPlugin from '../main';
 import { parseScorecardBlock } from '../services/markdownSync';
 import {
 	collectTargetShots,
@@ -13,6 +14,7 @@ export class ArcheryEmbed extends Component {
 		public containerEl: HTMLElement,
 		private app: App,
 		private file: TFile,
+		private plugin: ArcheryPlugin,
 	) {
 		super();
 	}
@@ -59,7 +61,12 @@ export class ArcheryEmbed extends Component {
 
 		if (sessionHasTargetCoords(state)) {
 			const targetWrap = body.createDiv({ cls: 'archery-target-wrap' });
-			renderReadonlyTarget(targetWrap, collectTargetShots(state));
+			renderReadonlyTarget(
+				targetWrap,
+				collectTargetShots(state),
+				this.plugin.settings.targetShotMarkerSize,
+				this.plugin.settings.showShotScores,
+			);
 			const footer = body.createDiv({ cls: 'archery-embed-footer' });
 			footer.setText(`Grand total: ${sessionGrandTotal(state)}`);
 		} else {

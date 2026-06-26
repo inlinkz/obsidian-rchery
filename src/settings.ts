@@ -2,6 +2,12 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import type ArcheryPlugin from './main';
 import { FolderSuggest } from './components/FolderSuggest';
 import { CONFIG_LIMITS, normalizeConfig, type SessionConfig } from './model/scorecard';
+import {
+	DEFAULT_SHOT_MARKER_SIZE,
+	SHOT_MARKER_SIZE_MAX,
+	SHOT_MARKER_SIZE_MIN,
+	normalizeShotMarkerSize,
+} from './model/targetMarker';
 
 export interface LayoutPreset {
 	name: string;
@@ -22,6 +28,12 @@ export interface ArcheryPluginSettings {
 	defaultScorecardFolder: string;
 	/** Pixels to shift the drag preview above the finger (score still at touch point). */
 	targetTouchOffsetY: number;
+	/** Show least-squares ellipses around visible ends on the target face. */
+	showEndEllipses: boolean;
+	/** Shot marker size on the target face (1 = black dot, 2–10 = coloured with outline). */
+	targetShotMarkerSize: number;
+	/** Show score labels above placed arrows on the target face. */
+	showShotScores: boolean;
 }
 
 export const DEFAULT_SETTINGS: ArcheryPluginSettings = {
@@ -29,6 +41,9 @@ export const DEFAULT_SETTINGS: ArcheryPluginSettings = {
 	defaultPresetName: 'Outdoor',
 	defaultScorecardFolder: '',
 	targetTouchOffsetY: 48,
+	showEndEllipses: false,
+	targetShotMarkerSize: DEFAULT_SHOT_MARKER_SIZE,
+	showShotScores: true,
 };
 
 const TARGET_TOUCH_OFFSET_LIMITS = { min: 0, max: 200 } as const;
@@ -68,6 +83,11 @@ export function normalizeSettings(
 			TARGET_TOUCH_OFFSET_LIMITS.max,
 			Math.max(TARGET_TOUCH_OFFSET_LIMITS.min, Math.round(offset)),
 		),
+		showEndEllipses: settings.showEndEllipses ?? DEFAULT_SETTINGS.showEndEllipses,
+		targetShotMarkerSize: normalizeShotMarkerSize(
+			settings.targetShotMarkerSize ?? DEFAULT_SETTINGS.targetShotMarkerSize,
+		),
+		showShotScores: settings.showShotScores ?? DEFAULT_SETTINGS.showShotScores,
 	};
 }
 
@@ -186,6 +206,51 @@ export class ArcherySettingTab extends PluginSettingTab {
 					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.targetTouchOffsetY = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName('End group ellipses')
+			.setDesc(
+				'Draw a semi-transparent ellipse around each visible end’s placed arrows. Applies to all scorecards. Which ends show an ellipse follows the end visibility buttons on the scorecard.',
+			)
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.showEndEllipses)
+					.onChange(async (value) => {
+						this.plugin.settings.showEndEllipses = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName('Shot marker size')
+			.setDesc(
+				'Size of each placed arrow on the target face. Size 1 is a small black dot; sizes 2–10 use end colour with an outline.',
+			)
+			.addDropdown((dropdown) => {
+				for (let size = SHOT_MARKER_SIZE_MIN; size <= SHOT_MARKER_SIZE_MAX; size++) {
+					dropdown.addOption(String(size), String(size));
+				}
+				dropdown
+					.setValue(String(this.plugin.settings.targetShotMarkerSize))
+					.onChange(async (value) => {
+						this.plugin.settings.targetShotMarkerSize = normalizeShotMarkerSize(
+							Number.parseInt(value, 10),
+						);
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName('Show scores on target')
+			.setDesc('Display the score value above each placed arrow on the target face.')
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.showShotScores)
+					.onChange(async (value) => {
+						this.plugin.settings.showShotScores = value;
 						await this.plugin.saveSettings();
 					});
 			});

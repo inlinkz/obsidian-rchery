@@ -12,6 +12,7 @@ import {
 	type SessionState,
 } from '../model/scorecard';
 import { ringFillClass, TARGET_RADIUS } from '../model/targetScoring';
+import { createTargetShotMarker, DEFAULT_SHOT_MARKER_SIZE } from '../model/targetMarker';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -42,57 +43,11 @@ export function collectTargetShots(state: SessionState): ArrowShot[] {
 	return shots;
 }
 
-export function renderReadonlyTarget(parent: HTMLElement, shots: ArrowShot[]): void {
-	const wrap = parent.createDiv({ cls: 'archery-target-face archery-target-face-readonly' });
-	const doc = wrap.ownerDocument;
-	const svg = doc.createElementNS(SVG_NS, 'svg');
-	svg.setAttribute(
-		'viewBox',
-		`${-TARGET_RADIUS - 1} ${-TARGET_RADIUS - 1} ${TARGET_RADIUS * 2 + 2} ${TARGET_RADIUS * 2 + 2}`,
-	);
-	svg.setAttribute('class', 'archery-target-svg');
-	wrap.appendChild(svg);
-
-	for (let score = 1; score <= 10; score++) {
-		const circle = doc.createElementNS(SVG_NS, 'circle');
-		circle.setAttribute('cx', '0');
-		circle.setAttribute('cy', '0');
-		circle.setAttribute('r', String(11 - score));
-		circle.setAttribute('class', `archery-target-ring ${ringFillClass(score)}`);
-		svg.appendChild(circle);
-	}
-
-	const border = doc.createElementNS(SVG_NS, 'circle');
-	border.setAttribute('cx', '0');
-	border.setAttribute('cy', '0');
-	border.setAttribute('r', String(TARGET_RADIUS));
-	border.setAttribute('class', 'archery-target-border');
-	svg.appendChild(border);
-
-	const markersLayer = doc.createElementNS(SVG_NS, 'g');
-	markersLayer.setAttribute('class', 'archery-target-markers');
-	svg.appendChild(markersLayer);
-
-	for (const shot of shots) {
-		markersLayer.appendChild(createMarker(doc, shot));
-	}
-}
-
-export function collectEndTargetShots(end: ArrowShot[]): ArrowShot[] {
-	return end.filter((shot) => shot.score !== null && shot.x !== null && shot.y !== null);
-}
-
-export function endHasReviewContent(scorecard: Scorecard, endIndex: number): boolean {
-	const arrows = scorecard.ends[endIndex];
-	const hasScore = arrows?.some((shot) => shot.score !== null) ?? false;
-	const hasNote = (scorecard.endNotes[endIndex]?.trim().length ?? 0) > 0;
-	return hasScore || hasNote;
-}
-
-export function renderReadonlyEndTarget(
+export function renderReadonlyTarget(
 	parent: HTMLElement,
 	shots: ArrowShot[],
-	endIndex: number,
+	markerSize = DEFAULT_SHOT_MARKER_SIZE,
+	showShotScores = true,
 ): void {
 	const wrap = parent.createDiv({ cls: 'archery-target-face archery-target-face-readonly' });
 	const doc = wrap.ownerDocument;
@@ -125,7 +80,64 @@ export function renderReadonlyEndTarget(
 	svg.appendChild(markersLayer);
 
 	for (const shot of shots) {
-		markersLayer.appendChild(createMarker(doc, shot, endIndex));
+		markersLayer.appendChild(
+			createTargetShotMarker(doc, shot, { markerSize, showScore: showShotScores }),
+		);
+	}
+}
+
+export function collectEndTargetShots(end: ArrowShot[]): ArrowShot[] {
+	return end.filter((shot) => shot.score !== null && shot.x !== null && shot.y !== null);
+}
+
+export function endHasReviewContent(scorecard: Scorecard, endIndex: number): boolean {
+	const arrows = scorecard.ends[endIndex];
+	const hasScore = arrows?.some((shot) => shot.score !== null) ?? false;
+	const hasNote = (scorecard.endNotes[endIndex]?.trim().length ?? 0) > 0;
+	return hasScore || hasNote;
+}
+
+export function renderReadonlyEndTarget(
+	parent: HTMLElement,
+	shots: ArrowShot[],
+	endIndex: number,
+	markerSize = DEFAULT_SHOT_MARKER_SIZE,
+	showShotScores = true,
+): void {
+	const wrap = parent.createDiv({ cls: 'archery-target-face archery-target-face-readonly' });
+	const doc = wrap.ownerDocument;
+	const svg = doc.createElementNS(SVG_NS, 'svg');
+	svg.setAttribute(
+		'viewBox',
+		`${-TARGET_RADIUS - 1} ${-TARGET_RADIUS - 1} ${TARGET_RADIUS * 2 + 2} ${TARGET_RADIUS * 2 + 2}`,
+	);
+	svg.setAttribute('class', 'archery-target-svg');
+	wrap.appendChild(svg);
+
+	for (let score = 1; score <= 10; score++) {
+		const circle = doc.createElementNS(SVG_NS, 'circle');
+		circle.setAttribute('cx', '0');
+		circle.setAttribute('cy', '0');
+		circle.setAttribute('r', String(11 - score));
+		circle.setAttribute('class', `archery-target-ring ${ringFillClass(score)}`);
+		svg.appendChild(circle);
+	}
+
+	const border = doc.createElementNS(SVG_NS, 'circle');
+	border.setAttribute('cx', '0');
+	border.setAttribute('cy', '0');
+	border.setAttribute('r', String(TARGET_RADIUS));
+	border.setAttribute('class', 'archery-target-border');
+	svg.appendChild(border);
+
+	const markersLayer = doc.createElementNS(SVG_NS, 'g');
+	markersLayer.setAttribute('class', 'archery-target-markers');
+	svg.appendChild(markersLayer);
+
+	for (const shot of shots) {
+		markersLayer.appendChild(
+			createTargetShotMarker(doc, shot, { endIndex, markerSize, showScore: showShotScores }),
+		);
 	}
 }
 
@@ -160,30 +172,6 @@ export function renderEndReviewScores(
 			total.addClass('archery-cell-complete');
 		}
 	}
-}
-
-function createMarker(doc: Document, shot: ArrowShot, endIndex?: number): SVGGElement {
-	const group = doc.createElementNS(SVG_NS, 'g');
-	const colorClass = endIndex === undefined ? '' : endColorClass(endIndex);
-	group.setAttribute(
-		'class',
-		colorClass ? `archery-target-marker ${colorClass}` : 'archery-target-marker',
-	);
-	group.setAttribute('transform', `translate(${shot.x}, ${-shot.y!})`);
-
-	const dot = doc.createElementNS(SVG_NS, 'circle');
-	dot.setAttribute('r', '0.35');
-	dot.setAttribute('class', 'archery-target-marker-dot');
-	group.appendChild(dot);
-
-	const label = doc.createElementNS(SVG_NS, 'text');
-	label.setAttribute('y', '-0.55');
-	label.setAttribute('text-anchor', 'middle');
-	label.setAttribute('class', 'archery-target-marker-label');
-	label.textContent = formatScore(shot.score);
-	group.appendChild(label);
-
-	return group;
 }
 
 export function renderReadonlySessionTables(parent: HTMLElement, state: SessionState): void {

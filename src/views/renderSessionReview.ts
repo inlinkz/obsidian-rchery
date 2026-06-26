@@ -12,6 +12,8 @@ export function renderSessionReview(
 	state: SessionState,
 	sourcePath: string,
 	component: Component,
+	markerSize?: number,
+	showShotScores?: boolean,
 ): boolean {
 	const body = parent.createDiv({ cls: 'archery-session-review-body' });
 	const { config } = state;
@@ -47,7 +49,7 @@ export function renderSessionReview(
 			const targetShots = collectEndTargetShots(arrows ?? []);
 			if (targetShots.length > 0) {
 				const targetWrap = section.createDiv({ cls: 'archery-review-target-wrap' });
-				renderReadonlyEndTarget(targetWrap, targetShots, endIndex);
+				renderReadonlyEndTarget(targetWrap, targetShots, endIndex, markerSize, showShotScores);
 			}
 
 			const note = scorecard.endNotes[endIndex]?.trim();

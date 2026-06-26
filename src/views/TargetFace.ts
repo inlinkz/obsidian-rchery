@@ -7,11 +7,17 @@ import {
 import {
 	cardIsFullyScored,
 	endColorClass,
-	formatScore,
 	nextCursor,
 	type ArrowShot,
 	type SessionState,
 } from '../model/scorecard';
+import { isScoreFilterActive, shotMatchesScoreFilter, type ScoreFilter } from '../model/scoreFilter';
+import { computeEndEllipse, type OrientedEllipse, type Point2D } from '../model/endEllipse';
+import {
+	createTargetShotMarker,
+	markerPaddingForSize,
+	normalizeShotMarkerSize,
+} from '../model/targetMarker';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -25,12 +31,17 @@ export class TargetFace {
 	private doc: Document;
 	private root: HTMLElement;
 	private svg: SVGSVGElement;
+	private ellipsesLayer: SVGGElement;
 	private markersLayer: SVGGElement;
 	private previewMarker: SVGGElement | null = null;
 	private cardIndex: number;
 	private touchOffsetY: number;
 	private visibleEnds = new Set<number>();
 	private visibleArrows = new Set<number>();
+	private showEllipses = false;
+	private shotMarkerSize = 6;
+	private showShotScores = true;
+	private scoreFilter: ScoreFilter = { minScore: null, maxScore: null };
 	private currentEndIndex: number | null = null;
 	private onPlace: (x: number, y: number, score: number) => void;
 	private dragging = false;
@@ -52,6 +63,9 @@ export class TargetFace {
 		this.root.appendChild(this.svg);
 
 		this.drawRings();
+		this.ellipsesLayer = this.doc.createElementNS(SVG_NS, 'g');
+		this.ellipsesLayer.setAttribute('class', 'archery-target-ellipses');
+		this.svg.appendChild(this.ellipsesLayer);
 		this.markersLayer = this.doc.createElementNS(SVG_NS, 'g');
 		this.markersLayer.setAttribute('class', 'archery-target-markers');
 		this.svg.appendChild(this.markersLayer);
@@ -76,10 +90,19 @@ export class TargetFace {
 		visibleEnds: Set<number>,
 		visibleArrows: Set<number>,
 		touchOffsetY: number,
+		scoreFilter: ScoreFilter = { minScore: null, maxScore: null },
+		showEllipses = false,
+		shotMarkerSize = 6,
+		showShotScores = true,
 	): void {
 		this.touchOffsetY = touchOffsetY;
 		this.visibleEnds = visibleEnds;
 		this.visibleArrows = visibleArrows;
+		this.scoreFilter = scoreFilter;
+		this.showEllipses = showEllipses;
+		this.shotMarkerSize = normalizeShotMarkerSize(shotMarkerSize);
+		this.showShotScores = showShotScores;
+		const filtering = isScoreFilterActive(scoreFilter);
 
 		const cursor = nextCursor(state);
 		const sessionComplete = cursor === null;
@@ -92,8 +115,10 @@ export class TargetFace {
 			'archery-target-face-inactive',
 			!this.active && !sessionComplete && !cardComplete,
 		);
+		this.root.toggleClass('archery-target-face-filtering', filtering);
 		this.svg.style.pointerEvents = this.active ? 'auto' : 'none';
 
+		this.renderEllipses(state);
 		this.renderMarkers(state);
 		if (!this.dragging) {
 			this.clearPreview();
@@ -118,8 +143,9 @@ export class TargetFace {
 		this.svg.appendChild(border);
 	}
 
-	private renderMarkers(state: SessionState): void {
-		this.markersLayer.replaceChildren();
+	private renderEllipses(state: SessionState): void {
+		this.ellipsesLayer.replaceChildren();
+		if (!this.showEllipses) return;
 
 		const scorecard = state.cards[this.cardIndex];
 		if (!scorecard) return;
@@ -127,39 +153,83 @@ export class TargetFace {
 		for (const endIndex of this.visibleEnds) {
 			const end = scorecard.ends[endIndex];
 			if (!end) continue;
+			const points = this.collectEndPoints(end);
+			const ellipse = computeEndEllipse(points, markerPaddingForSize(this.shotMarkerSize));
+			if (!ellipse) continue;
+			this.ellipsesLayer.appendChild(this.createEllipse(ellipse, endIndex));
+		}
+	}
+
+	private collectEndPoints(end: ArrowShot[]): Point2D[] {
+		const filtering = isScoreFilterActive(this.scoreFilter);
+		const points: Point2D[] = [];
+		for (const shot of end) {
+			if (!shot || shot.x === null || shot.y === null || shot.score === null) continue;
+			if (filtering && !shotMatchesScoreFilter(shot, this.scoreFilter)) continue;
+			points.push({ x: shot.x, y: shot.y });
+		}
+		return points;
+	}
+
+	private createEllipse(ellipse: OrientedEllipse, endIndex: number): SVGEllipseElement {
+		const colorClass = endColorClass(endIndex);
+		const svgCy = -ellipse.cy;
+		const element = this.doc.createElementNS(SVG_NS, 'ellipse');
+		element.setAttribute('cx', String(ellipse.cx));
+		element.setAttribute('cy', String(svgCy));
+		element.setAttribute('rx', String(ellipse.rx));
+		element.setAttribute('ry', String(ellipse.ry));
+		element.setAttribute(
+			'transform',
+			`rotate(${-ellipse.angleDeg} ${ellipse.cx} ${svgCy})`,
+		);
+		element.setAttribute('class', `archery-target-end-ellipse ${colorClass}`);
+		return element;
+	}
+
+	private renderMarkers(state: SessionState): void {
+		this.markersLayer.replaceChildren();
+
+		const scorecard = state.cards[this.cardIndex];
+		if (!scorecard) return;
+
+		const filtering = isScoreFilterActive(this.scoreFilter);
+
+		for (let endIndex = 0; endIndex < scorecard.ends.length; endIndex++) {
+			if (!filtering && !this.visibleEnds.has(endIndex)) continue;
+			const end = scorecard.ends[endIndex];
+			if (!end) continue;
 			for (let arrowIndex = 0; arrowIndex < end.length; arrowIndex++) {
-				if (!this.visibleArrows.has(arrowIndex)) continue;
+				if (!filtering && !this.visibleArrows.has(arrowIndex)) continue;
 				const shot = end[arrowIndex];
 				if (!shot || shot.x === null || shot.y === null || shot.score === null) continue;
-				this.markersLayer.appendChild(this.createMarker(shot, false, endIndex));
+				if (filtering && !shotMatchesScoreFilter(shot, this.scoreFilter)) continue;
+				this.markersLayer.appendChild(
+					createTargetShotMarker(this.doc, shot, {
+						endIndex,
+						filtered: filtering,
+						markerSize: this.shotMarkerSize,
+						showScore: this.showShotScores,
+					}),
+				);
 			}
 		}
 	}
 
-	private createMarker(shot: ArrowShot, preview: boolean, endIndex: number): SVGGElement {
-		const group = this.doc.createElementNS(SVG_NS, 'g');
-		const colorClass = endColorClass(endIndex);
-		group.setAttribute(
-			'class',
-			preview
-				? `archery-target-marker archery-target-marker-preview ${colorClass}`
-				: `archery-target-marker ${colorClass}`,
-		);
-		group.setAttribute('transform', `translate(${shot.x}, ${-shot.y!})`);
+	private updatePreview(clientX: number, clientY: number): void {
+		const { x, y } = this.arrowCoordsFromTouch(clientX, clientY);
+		const score = scoreFromPoint(x, y);
+		this.clearPreview();
+		if (score === null) return;
 
-		const dot = this.doc.createElementNS(SVG_NS, 'circle');
-		dot.setAttribute('r', '0.35');
-		dot.setAttribute('class', 'archery-target-marker-dot');
-		group.appendChild(dot);
-
-		const label = this.doc.createElementNS(SVG_NS, 'text');
-		label.setAttribute('y', '-0.55');
-		label.setAttribute('text-anchor', 'middle');
-		label.setAttribute('class', 'archery-target-marker-label');
-		label.textContent = formatScore(shot.score);
-		group.appendChild(label);
-
-		return group;
+		const endIndex = this.currentEndIndex ?? 0;
+		this.previewMarker = createTargetShotMarker(this.doc, { score, x, y }, {
+			endIndex,
+			preview: true,
+			markerSize: this.shotMarkerSize,
+			showScore: this.showShotScores,
+		});
+		this.markersLayer.appendChild(this.previewMarker);
 	}
 
 	private onPointerDown = (event: PointerEvent): void => {
@@ -206,17 +276,6 @@ export class TargetFace {
 		if (this.svg.hasPointerCapture(pointerId)) {
 			this.svg.releasePointerCapture(pointerId);
 		}
-	}
-
-	private updatePreview(clientX: number, clientY: number): void {
-		const { x, y } = this.arrowCoordsFromTouch(clientX, clientY);
-		const score = scoreFromPoint(x, y);
-		this.clearPreview();
-		if (score === null) return;
-
-		const endIndex = this.currentEndIndex ?? 0;
-		this.previewMarker = this.createMarker({ score, x, y }, true, endIndex);
-		this.markersLayer.appendChild(this.previewMarker);
 	}
 
 	private clearPreview(): void {
