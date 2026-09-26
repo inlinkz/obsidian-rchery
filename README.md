@@ -66,6 +66,10 @@ In View mode the plugin regenerates this content when you enter scores. In Edit 
 
 ## Changelog
 
+### 1.0.17
+- **Added** bulk loader round list with times, gaps, and per-round removal
+- **Changed** bulk tally pad to 1, 5, 10, and −1, colored by sign
+
 ### 1.0.15
 - **Added** toolbar score filter with dual-handle range slider — highlights matching arrow placements on the target face
 - **Added** target visibility dialog (eye icon) — toggle end-group ellipses, shot marker size, and score labels
