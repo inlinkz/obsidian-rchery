@@ -1,0 +1,23 @@
+{
+  "customPresets": [
+    {
+      "name": "Single 6x6 shooting round",
+      "endsPerCard": 6,
+      "arrowsPerEnd": 6,
+      "cardsCount": 1
+    },
+    {
+      "name": "Single 10x3 shooting round",
+      "endsPerCard": 10,
+      "arrowsPerEnd": 3,
+      "cardsCount": 1
+    }
+  ],
+  "defaultPresetName": "Indoor",
+  "defaultScorecardFolder": "",
+  "defaultSessionFolder": "",
+  "targetTouchOffsetY": 48,
+  "showEndEllipses": true,
+  "targetShotMarkerSize": 6,
+  "showShotScores": true
+}

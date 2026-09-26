@@ -26,6 +26,8 @@ export interface ArcheryPluginSettings {
 	defaultPresetName: string;
 	/** Vault folder path for new scorecards; empty uses Obsidian's default. */
 	defaultScorecardFolder: string;
+	/** Vault folder path for new training sessions; empty uses Obsidian's default. */
+	defaultSessionFolder: string;
 	/** Pixels to shift the drag preview above the finger (score still at touch point). */
 	targetTouchOffsetY: number;
 	/** Show least-squares ellipses around visible ends on the target face. */
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: ArcheryPluginSettings = {
 	customPresets: [],
 	defaultPresetName: 'Outdoor',
 	defaultScorecardFolder: '',
+	defaultSessionFolder: '',
 	targetTouchOffsetY: 48,
 	showEndEllipses: false,
 	targetShotMarkerSize: DEFAULT_SHOT_MARKER_SIZE,
@@ -78,6 +81,9 @@ export function normalizeSettings(
 		defaultPresetName: settings.defaultPresetName ?? DEFAULT_SETTINGS.defaultPresetName,
 		defaultScorecardFolder: normalizeScorecardFolder(
 			settings.defaultScorecardFolder ?? DEFAULT_SETTINGS.defaultScorecardFolder,
+		),
+		defaultSessionFolder: normalizeScorecardFolder(
+			settings.defaultSessionFolder ?? DEFAULT_SETTINGS.defaultSessionFolder,
 		),
 		targetTouchOffsetY: Math.min(
 			TARGET_TOUCH_OFFSET_LIMITS.max,
@@ -158,7 +164,7 @@ export class ArcherySettingTab extends PluginSettingTab {
 		}
 
 		new Setting(containerEl)
-			.setName('Default folder')
+			.setName('Default scorecard folder')
 			.setDesc(
 				'Folder where new scorecards are created. Leave empty to use Obsidian’s default new-file location.',
 			)
@@ -169,6 +175,22 @@ export class ArcherySettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.defaultScorecardFolder)
 					.onChange(async (value) => {
 						this.plugin.settings.defaultScorecardFolder = normalizeScorecardFolder(value);
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName('Default session folder')
+			.setDesc(
+				'Folder where new training sessions (Session YYYY-MM-DD.rsession) are created. Leave empty to use Obsidian’s default new-file location.',
+			)
+			.addSearch((search) => {
+				new FolderSuggest(this.app, search.inputEl);
+				search
+					.setPlaceholder('e.g. Archery/Sessions')
+					.setValue(this.plugin.settings.defaultSessionFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.defaultSessionFolder = normalizeScorecardFolder(value);
 						await this.plugin.saveSettings();
 					});
 			});

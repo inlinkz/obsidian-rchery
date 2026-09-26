@@ -1,4 +1,4 @@
-import { Component, FileView, Notice, WorkspaceLeaf, setIcon, type TFile } from 'obsidian';
+import { Component, FileView, Notice, TFile, WorkspaceLeaf, setIcon } from 'obsidian';
 import type ArcheryPlugin from '../main';
 import {
 	applyScore,
@@ -263,6 +263,7 @@ export class ScorecardView extends FileView {
 		this.headerEl = container.createDiv({ cls: 'archery-header' });
 
 		this.headerEl.createEl('h3', { text: this.file?.basename ?? 'Archery Scorecard' });
+		this.renderSessionLink();
 		this.renderConfigLabel();
 
 		this.viewContainer = container.createDiv({ cls: 'archery-view-container' });
@@ -271,6 +272,32 @@ export class ScorecardView extends FileView {
 		this.renderViewMode();
 		this.renderEditMode();
 		this.updateModeUi();
+	}
+
+	private renderSessionLink(): void {
+		const existing = this.headerEl?.querySelector('.archery-session-link');
+		existing?.remove();
+
+		const sessionPath = this.state.session?.trim();
+		if (!sessionPath || !this.headerEl || !this.file) return;
+
+		const linkEl = this.headerEl.createDiv({ cls: 'archery-session-link' });
+		linkEl.createSpan({ text: 'Session: ' });
+		const btn = linkEl.createEl('button', {
+			cls: 'archery-session-link-btn',
+			text: sessionPath,
+			attr: { type: 'button' },
+		});
+		btn.addEventListener('click', () => {
+			const target =
+				this.app.metadataCache.getFirstLinkpathDest(sessionPath, this.file!.path) ??
+				this.app.vault.getAbstractFileByPath(sessionPath);
+			if (target instanceof TFile) {
+				void this.app.workspace.getLeaf(false).openFile(target);
+			} else {
+				new Notice(`Could not find session: ${sessionPath}`);
+			}
+		});
 	}
 
 	private renderConfigLabel(): void {

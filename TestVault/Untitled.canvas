@@ -1,0 +1,14 @@
+{
+	"nodes":[
+		{"id":"4a804c87d7669b01","type":"file","file":"Bulk 2026-09-25 23-17.rbulk","x":40,"y":740,"width":400,"height":400},
+		{"id":"2044244ce82c5f13","type":"text","text":"Try this ","x":-609,"y":-86,"width":250,"height":60},
+		{"id":"7ba9bc07dfdf8175","type":"file","file":"Scorecard 2026-09-25 23-18.rchery","x":-484,"y":140,"width":400,"height":400,"color":"4"},
+		{"id":"0600bd28c39e6854","type":"text","text":"Break","x":-484,"y":680,"width":250,"height":60,"color":"4"},
+		{"id":"b89ab2bfd812680c","type":"file","file":"Bulk 2026-09-25 23-24.rbulk","x":-559,"y":840,"width":475,"height":400,"color":"1"}
+	],
+	"edges":[
+		{"id":"0407dfb76424d91e","fromNode":"2044244ce82c5f13","fromSide":"bottom","toNode":"7ba9bc07dfdf8175","toSide":"top"},
+		{"id":"d8133a9489d74fec","fromNode":"7ba9bc07dfdf8175","fromSide":"bottom","toNode":"0600bd28c39e6854","toSide":"top"},
+		{"id":"c1ab230c34b563f2","fromNode":"0600bd28c39e6854","fromSide":"bottom","toNode":"b89ab2bfd812680c","toSide":"top"}
+	]
+}

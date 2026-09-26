@@ -92,14 +92,20 @@ export function parseConfigLine(line: string): SessionConfig | null {
 
 export interface SessionMetaSnapshot extends SessionStats {
 	roundType: string;
+	/** Wiki link path to owning .rsession, when present. */
+	session?: string;
 }
 
 export function buildSessionMeta(state: SessionState): SessionMetaSnapshot {
 	const stats = computeSessionStats(state);
-	return {
+	const meta: SessionMetaSnapshot = {
 		roundType: state.config.roundType ?? 'Custom',
 		...stats,
 	};
+	if (state.session?.trim()) {
+		meta.session = state.session.trim();
+	}
+	return meta;
 }
 
 export function serializeMeta(state: SessionState): string {
@@ -111,7 +117,15 @@ export function parseMetaLine(line: string): SessionMetaSnapshot | null {
 	if (!trimmed.startsWith(META_PREFIX)) return null;
 	const json = trimmed.slice(META_PREFIX.length).replace(/-->\s*$/, '').trim();
 	try {
-		return JSON.parse(json) as SessionMetaSnapshot;
+		const raw = JSON.parse(json) as Partial<SessionMetaSnapshot>;
+		const session =
+			typeof raw.session === 'string' && raw.session.trim()
+				? raw.session.trim()
+				: undefined;
+		return {
+			...(raw as SessionMetaSnapshot),
+			...(session ? { session } : {}),
+		};
 	} catch {
 		return null;
 	}
@@ -310,7 +324,22 @@ export function parseScorecardBlock(content: string): SessionState | null {
 		};
 	}
 
-	return parseEndNotes(block, state);
+	const withNotes = parseEndNotes(block, state);
+	const session = parseSessionLinkFromContent(content);
+	if (session) {
+		withNotes.session = session;
+	}
+	return withNotes;
+}
+
+function parseSessionLinkFromContent(content: string): string | undefined {
+	for (const line of content.split('\n')) {
+		const meta = parseMetaLine(line);
+		if (meta?.session?.trim()) {
+			return meta.session.trim();
+		}
+	}
+	return undefined;
 }
 
 export function buildScorecardBlock(state: SessionState): string {
@@ -408,6 +437,7 @@ export async function createScorecardFile(
 	app: App,
 	config: SessionConfig = DEFAULT_CONFIG,
 	defaultFolder = '',
+	sessionLink?: string,
 ): Promise<TFile | null> {
 	const dateLabel = formatDateForFilename();
 	const baseName = `Scorecard ${dateLabel}`;
@@ -421,10 +451,11 @@ export async function createScorecardFile(
 	}
 
 	try {
-		return await app.vault.create(
-			path,
-			serializeSession(createSessionState(normalizeConfig(config))),
+		const state = createSessionState(
+			normalizeConfig(config),
+			sessionLink?.trim() || undefined,
 		);
+		return await app.vault.create(path, serializeSession(state));
 	} catch {
 		new Notice('Could not create scorecard file.');
 		return null;

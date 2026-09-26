@@ -163,6 +163,8 @@ export interface Cursor {
 export interface SessionState {
 	config: SessionConfig;
 	cards: Scorecard[];
+	/** Wiki link path to owning .rsession file, when created from a session. */
+	session?: string;
 }
 
 export function createEmptyScorecard(config: SessionConfig): Scorecard {
@@ -197,13 +199,17 @@ export function setEndNote(
 	return { ...state, cards };
 }
 
-export function createSessionState(config: SessionConfig = DEFAULT_CONFIG): SessionState {
+export function createSessionState(
+	config: SessionConfig = DEFAULT_CONFIG,
+	session?: string,
+): SessionState {
 	const normalized = normalizeConfig(config);
 	return {
 		config: normalized,
 		cards: Array.from({ length: normalized.cardsCount }, () =>
 			createEmptyScorecard(normalized),
 		),
+		...(session ? { session } : {}),
 	};
 }
 
@@ -346,6 +352,7 @@ function cloneState(state: SessionState): SessionState {
 			ends: card.ends.map((end) => end.map((shot) => ({ ...shot }))),
 			endNotes: [...card.endNotes],
 		})),
+		...(state.session ? { session: state.session } : {}),
 	};
 }
 
@@ -440,5 +447,9 @@ export function resizeSessionState(
 		cards.push({ ends, endNotes });
 	}
 
-	return { config, cards };
+	return {
+		config,
+		cards,
+		...(state.session ? { session: state.session } : {}),
+	};
 }

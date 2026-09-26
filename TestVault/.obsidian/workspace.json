@@ -4,19 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "09753de756bb51db",
+        "id": "6c0091a62ec3f996",
         "type": "tabs",
         "children": [
           {
-            "id": "1c6113fde2e5d1be",
+            "id": "94986b713659d0bf",
             "type": "leaf",
             "state": {
-              "type": "obsidian-archery-scorecard",
+              "type": "obsidian-archery-rsession",
               "state": {
-                "file": "Scorecard 2026-06-19 14-55.rchery"
+                "file": "Session 2026-09-25.rsession"
               },
-              "icon": "target",
-              "title": "Scorecard 2026-06-19 14-55"
+              "icon": "calendar",
+              "title": "Session 2026-09-25"
             }
           }
         ]
@@ -39,7 +39,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -92,6 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "Session 2026-09-25.rsession",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -165,8 +168,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 200
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -177,22 +179,29 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "bases:Create new base": false,
-      "rchery:New archery scorecard": false
+      "rchery:New archery scorecard": false,
+      "rchery:New training session": false,
+      "rchery:New bulk loader": false
     }
   },
-  "active": "1c6113fde2e5d1be",
+  "active": "94986b713659d0bf",
   "lastOpenFiles": [
-    "Scorecard 2026-06-19 14-55.rchery",
-    "Welcome.md",
-    "Training June 19th 2026.md",
-    "Scorecard 2026-06-18 22-44.rchery",
-    "Scorecard 2026-06-23 20-55.rchery",
-    "Scorecard 2026-06-19 11-30.rchery",
-    "Scorecard 2026-06-19 11-29.rchery",
-    "Scorecard 2026-06-19 09-54.rchery",
+    "Untitled.canvas",
+    "Scorecard 2026-09-25 23-18.rchery",
+    "Session 2026-09-25.rsession",
+    "Bulk 2026-09-25 23-24.rbulk",
+    "Bulk 2026-09-25 23-17.rbulk",
     "archery-stats-dashboard.md",
-    "Scorecard 2026-06-19 10-51.rchery",
+    "Bulk 2026-09-25 23-18.rbulk",
+    "Scorecard 2026-09-25 23-17.rchery",
+    "Session template.rsessiont",
+    "Bulk 2026-09-25 23-07.rbulk",
+    "Scorecard 2026-09-25 22-40.rchery",
+    "Session 2026-09-24.rsession",
+    "Welcome.md",
     "Canvas for rchery.canvas",
+    "Session 2026-09-25.md",
+    "Training June 19th 2026.md",
     "Charts of rchery.md"
   ]
 }

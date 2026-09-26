@@ -1304,3 +1304,409 @@
 	text-align: center;
 	padding: 1rem 0;
 }
+
+/* Training session date modal */
+
+.archery-session-date-modal {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.archery-session-date-hint {
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.archery-session-date-row {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.archery-session-date-input {
+	flex: 1;
+}
+
+.archery-session-date-error {
+	color: var(--text-error);
+	font-size: 0.85em;
+}
+
+.archery-session-date-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+.archery-session-preview-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0 0 1rem;
+	padding: 0.5rem 0;
+}
+
+.archery-session-add-scorecard-btn {
+	cursor: pointer;
+}
+
+/* Training session (.rsession) view */
+
+.archery-rsession-view {
+	padding: 1rem 1.25rem 2rem;
+	max-width: 52rem;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	height: 100%;
+	box-sizing: border-box;
+}
+
+.archery-rsession-view-pane {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	flex: 1;
+}
+
+.archery-rsession-edit {
+	flex: 1;
+	min-height: 0;
+}
+
+.archery-rsession-header {
+	margin-bottom: 1rem;
+}
+
+.archery-rsession-title {
+	margin: 0;
+	font-size: 1.35rem;
+}
+
+.archery-rsession-date {
+	margin-top: 0.25rem;
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.archery-rsession-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-bottom: 1.25rem;
+}
+
+.archery-rsession-blocks {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.archery-rsession-empty {
+	color: var(--text-muted);
+	font-size: 0.9em;
+	padding: 0.75rem 0;
+}
+
+.archery-rsession-block {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	overflow: hidden;
+	background: var(--background-primary-alt);
+}
+
+.archery-rsession-block-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.4rem 0.6rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.archery-rsession-block-type {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-muted);
+}
+
+.archery-rsession-block-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.15rem;
+}
+
+.archery-rsession-block-body {
+	padding: 0.75rem;
+}
+
+.archery-rsession-block-body .archery-embed {
+	margin: 0;
+}
+
+.archery-rsession-text-input {
+	width: 100%;
+	min-height: 5rem;
+	resize: vertical;
+	font-family: var(--font-text);
+	line-height: 1.5;
+	border: none;
+	background: transparent;
+	padding: 0;
+}
+
+.archery-rsession-block-missing {
+	color: var(--text-error);
+	font-size: 0.9em;
+}
+
+.archery-rsession-block-pending {
+	color: var(--text-muted);
+	margin-bottom: 0.5rem;
+}
+
+.archery-rsession-step-label {
+	width: 100%;
+}
+
+.archery-session-link {
+	margin-top: 0.25rem;
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+.archery-session-link-btn {
+	background: none;
+	border: none;
+	padding: 0;
+	color: var(--text-accent);
+	cursor: pointer;
+	font: inherit;
+	text-decoration: underline;
+}
+
+.archery-session-link-btn:hover {
+	color: var(--text-accent-hover);
+}
+
+.archery-rsession-step {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.55rem 0.7rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary-alt);
+}
+
+.archery-rsession-step-label,
+.archery-rsession-step-title {
+	flex: 1;
+	min-width: 0;
+}
+
+.archery-rsession-step-title {
+	font-weight: 600;
+}
+
+.archery-rsession-header {
+	margin-bottom: 1rem;
+}
+
+.archery-rsession-title {
+	margin: 0;
+}
+
+.archery-rsession-date {
+	color: var(--text-muted);
+	margin-top: 0.25rem;
+}
+
+.archery-rsession-blocks {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.archery-rsession-block {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary-alt);
+	overflow: hidden;
+}
+
+.archery-rsession-block-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.4rem 0.6rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.archery-rsession-block-type {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-muted);
+}
+
+.archery-rsession-block-body {
+	padding: 0.75rem;
+}
+
+.archery-rsession-text-input,
+.archery-rsession-step-label {
+	width: 100%;
+}
+
+.archery-rsession-text-input {
+	min-height: 6rem;
+	resize: vertical;
+}
+
+.archery-rsession-block-pending {
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+
+.archery-rsession-block-missing {
+	color: var(--text-error);
+}
+
+.archery-bulk-view {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	box-sizing: border-box;
+}
+
+.archery-bulk-view-pane,
+.archery-bulk-host {
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	min-height: 0;
+	flex: 1;
+}
+
+.archery-bulk-edit {
+	flex: 1;
+	min-height: 0;
+	padding: 1rem 1.25rem;
+}
+
+.archery-bulk {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	width: 100%;
+	max-width: 28rem;
+	margin-inline: auto;
+	padding: 0.75rem;
+}
+
+.archery-bulk-summary {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 1.25rem;
+	align-items: baseline;
+}
+
+.archery-bulk-total {
+	font-size: 1.25rem;
+	font-weight: 650;
+}
+
+.archery-bulk-timing {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	color: var(--text-muted);
+}
+
+.archery-bulk-columns {
+	display: flex;
+	gap: 1rem;
+	align-items: flex-start;
+	min-height: 12rem;
+}
+
+.archery-bulk-rounds {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.archery-bulk-empty {
+	color: var(--text-muted);
+}
+
+.archery-bulk-round {
+	display: grid;
+	grid-template-columns: 2rem 3.5rem 4rem 1fr;
+	gap: 0.5rem;
+	align-items: baseline;
+	padding: 0.35rem 0.5rem;
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+}
+
+.archery-bulk-round-arrows {
+	font-weight: 650;
+}
+
+.archery-bulk-round-gap,
+.archery-bulk-round-time {
+	color: var(--text-muted);
+}
+
+.archery-bulk-pad {
+	width: 11rem;
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.archery-bulk-tally {
+	font-size: 2.5rem;
+	font-weight: 700;
+	text-align: center;
+	line-height: 1;
+}
+
+.archery-bulk-steps {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.4rem;
+}
+
+.archery-bulk-step,
+.archery-bulk-ok,
+.archery-bulk-reset {
+	min-height: 2.4rem;
+}
+
+.archery-bulk-ok:disabled {
+	opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+	.archery-bulk-columns {
+		flex-direction: column;
+	}
+
+	.archery-bulk-pad {
+		width: 100%;
+	}
+}
+
