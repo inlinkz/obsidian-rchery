@@ -11,12 +11,17 @@
             "id": "94986b713659d0bf",
             "type": "leaf",
             "state": {
-              "type": "obsidian-archery-rsession",
+              "type": "canvas",
               "state": {
-                "file": "Session 2026-09-25.rsession"
+                "file": "Untitled.canvas",
+                "viewState": {
+                  "x": -84.5,
+                  "y": 577,
+                  "zoom": -0.8901487583550364
+                }
               },
-              "icon": "calendar",
-              "title": "Session 2026-09-25"
+              "icon": "lucide-layout-dashboard",
+              "title": "Untitled"
             }
           }
         ]
@@ -94,7 +99,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Session 2026-09-25.rsession",
+                "file": "Untitled.canvas",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -186,9 +191,9 @@
   },
   "active": "94986b713659d0bf",
   "lastOpenFiles": [
+    "Session 2026-09-25.rsession",
     "Untitled.canvas",
     "Scorecard 2026-09-25 23-18.rchery",
-    "Session 2026-09-25.rsession",
     "Bulk 2026-09-25 23-24.rbulk",
     "Bulk 2026-09-25 23-17.rbulk",
     "archery-stats-dashboard.md",
