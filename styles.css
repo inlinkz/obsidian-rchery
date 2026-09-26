@@ -1605,37 +1605,38 @@
 .archery-bulk {
 	display: flex;
 	flex-direction: column;
-	gap: 0.75rem;
+	gap: 0.6rem;
 	width: 100%;
-	max-width: 28rem;
+	max-width: 24rem;
 	margin-inline: auto;
-	padding: 0.75rem;
+	padding: 0.5rem 0.65rem;
 }
 
 .archery-bulk-summary {
 	display: flex;
-	flex-wrap: wrap;
-	gap: 0.75rem 1.25rem;
-	align-items: baseline;
+	flex-direction: column;
+	gap: 0.15rem;
 }
 
 .archery-bulk-total {
-	font-size: 1.25rem;
+	font-size: 1.15rem;
 	font-weight: 650;
+	font-variant-numeric: tabular-nums;
 }
 
 .archery-bulk-timing {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.75rem;
+	gap: 0.35rem 0.75rem;
 	color: var(--text-muted);
+	font-size: 0.85rem;
+	font-variant-numeric: tabular-nums;
 }
 
 .archery-bulk-columns {
 	display: flex;
-	gap: 1rem;
+	gap: 0.65rem;
 	align-items: flex-start;
-	min-height: 12rem;
 }
 
 .archery-bulk-rounds {
@@ -1643,21 +1644,36 @@
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 0.35rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	overflow: hidden;
 }
 
 .archery-bulk-empty {
 	color: var(--text-muted);
+	padding: 0.45rem 0.5rem;
+	border: none;
 }
 
 .archery-bulk-round {
 	display: grid;
-	grid-template-columns: 2rem 3.5rem 4rem 1fr;
-	gap: 0.5rem;
-	align-items: baseline;
-	padding: 0.35rem 0.5rem;
-	border-radius: var(--radius-s);
-	background: var(--background-secondary);
+	grid-template-columns: 1.25rem 2.6rem 2.8rem minmax(2.6rem, 1fr) 1.25rem;
+	column-gap: 0.3rem;
+	align-items: center;
+	padding: 0.18rem 0.35rem;
+	font-variant-numeric: tabular-nums;
+	font-size: 0.9rem;
+	line-height: 1.3;
+}
+
+.archery-bulk-round + .archery-bulk-round {
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.archery-bulk-round-header {
+	color: var(--text-faint);
+	font-size: 0.7rem;
+	letter-spacing: 0.01em;
 }
 
 .archery-bulk-round-arrows {
@@ -1669,12 +1685,19 @@
 	color: var(--text-muted);
 }
 
+.archery-bulk-round-remove {
+	padding: 0;
+	height: 1.15rem;
+	width: 1.15rem;
+	color: var(--text-faint);
+}
+
 .archery-bulk-pad {
-	width: 11rem;
+	width: 7.5rem;
 	flex: none;
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
+	gap: 0.35rem;
 }
 
 .archery-bulk-tally {
@@ -1694,6 +1717,18 @@
 .archery-bulk-ok,
 .archery-bulk-reset {
 	min-height: 2.4rem;
+}
+
+.archery-bulk-pad button.archery-bulk-step-pos,
+.archery-bulk-pad button.archery-bulk-step-pos:hover {
+	color: var(--text-success);
+	background-color: color-mix(in srgb, var(--color-green) 32%, var(--background-primary));
+}
+
+.archery-bulk-pad button.archery-bulk-step-neg,
+.archery-bulk-pad button.archery-bulk-step-neg:hover {
+	color: var(--text-error);
+	background-color: color-mix(in srgb, var(--color-red) 32%, var(--background-primary));
 }
 
 .archery-bulk-ok:disabled {

@@ -1,4 +1,4 @@
-import { Component, TFile, type App } from 'obsidian';
+import { Component, TFile, setIcon, type App } from 'obsidian';
 import {
 	bulkFinishedAt,
 	bulkStartedAt,
@@ -12,7 +12,7 @@ import {
 } from '../model/rbulk';
 import { loadBulkFromFile, saveBulkToFile } from '../services/rbulkSync';
 
-const PAD_STEPS = [1, 10, -1, -5] as const;
+const PAD_STEPS = [1, 5, 10, -1] as const;
 
 export class BulkLoaderPanel extends Component {
 	private state: BulkState = createBulkState();
@@ -94,6 +94,12 @@ export class BulkLoaderPanel extends Component {
 			list.createDiv({ cls: 'archery-bulk-empty', text: 'No rounds yet.' });
 			return;
 		}
+		const header = list.createDiv({ cls: 'archery-bulk-round archery-bulk-round-header' });
+		header.createSpan({ text: '#' });
+		header.createSpan({ text: 'Arrows' });
+		header.createSpan({ text: 'Time' });
+		header.createSpan({ text: 'Gap' });
+		header.createSpan();
 		this.state.rounds.forEach((round, index) => {
 			const row = list.createDiv({ cls: 'archery-bulk-round' });
 			row.createSpan({ cls: 'archery-bulk-round-index', text: String(index + 1) });
@@ -103,6 +109,14 @@ export class BulkLoaderPanel extends Component {
 			row.createSpan({
 				cls: 'archery-bulk-round-gap',
 				text: gap === null ? '' : `+${formatDuration(gap)}`,
+			});
+			const remove = row.createEl('button', {
+				cls: 'clickable-icon archery-bulk-round-remove',
+				attr: { type: 'button', 'aria-label': 'Remove batch' },
+			});
+			setIcon(remove, 'trash');
+			this.ui.registerDomEvent(remove, 'click', () => {
+				void this.removeRound(index);
 			});
 		});
 	}
@@ -114,7 +128,7 @@ export class BulkLoaderPanel extends Component {
 		const steps = pad.createDiv({ cls: 'archery-bulk-steps' });
 		for (const step of PAD_STEPS) {
 			const button = steps.createEl('button', {
-				cls: 'archery-bulk-step',
+				cls: `archery-bulk-step ${step < 0 ? 'archery-bulk-step-neg' : 'archery-bulk-step-pos'}`,
 				text: String(step),
 				attr: { type: 'button' },
 			});
@@ -149,6 +163,16 @@ export class BulkLoaderPanel extends Component {
 		if (this.tally < 1) return;
 		this.state.rounds.push({ arrows: this.tally, at: new Date().toISOString() });
 		this.tally = 0;
+		await this.persist();
+	}
+
+	private async removeRound(index: number): Promise<void> {
+		if (index < 0 || index >= this.state.rounds.length) return;
+		this.state.rounds.splice(index, 1);
+		await this.persist();
+	}
+
+	private async persist(): Promise<void> {
 		this.writing = true;
 		try {
 			await saveBulkToFile(this.app, this.file, this.state);
