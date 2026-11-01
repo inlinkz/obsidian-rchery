@@ -4,24 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "6c0091a62ec3f996",
+        "id": "d9891aa23cb27923",
         "type": "tabs",
         "children": [
           {
-            "id": "94986b713659d0bf",
+            "id": "aa702fd58a7aa8c2",
             "type": "leaf",
             "state": {
-              "type": "canvas",
+              "type": "obsidian-archery-scorecard",
               "state": {
-                "file": "Untitled.canvas",
-                "viewState": {
-                  "x": -84.5,
-                  "y": 577,
-                  "zoom": -0.8901487583550364
-                }
+                "file": "Session2.rchery"
               },
-              "icon": "lucide-layout-dashboard",
-              "title": "Untitled"
+              "icon": "target",
+              "title": "Session2"
             }
           }
         ]
@@ -99,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Untitled.canvas",
+                "file": "Session2.rchery",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -189,20 +184,22 @@
       "rchery:New bulk loader": false
     }
   },
-  "active": "94986b713659d0bf",
+  "active": "aa702fd58a7aa8c2",
   "lastOpenFiles": [
+    "Session2.rchery",
     "Session 2026-09-25.rsession",
-    "Untitled.canvas",
+    "Session.rchery",
     "Scorecard 2026-09-25 23-18.rchery",
-    "Bulk 2026-09-25 23-24.rbulk",
+    "Session.md",
+    "Untitled.canvas",
     "Bulk 2026-09-25 23-17.rbulk",
+    "Bulk 2026-09-25 23-24.rbulk",
     "archery-stats-dashboard.md",
     "Bulk 2026-09-25 23-18.rbulk",
     "Scorecard 2026-09-25 23-17.rchery",
     "Session template.rsessiont",
     "Bulk 2026-09-25 23-07.rbulk",
     "Scorecard 2026-09-25 22-40.rchery",
-    "Session 2026-09-24.rsession",
     "Welcome.md",
     "Canvas for rchery.canvas",
     "Session 2026-09-25.md",

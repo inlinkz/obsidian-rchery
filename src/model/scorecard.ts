@@ -1,3 +1,4 @@
+import type { AimTrace } from './aimTrace';
 import { roundCoord } from './targetScoring';
 
 export const DEFAULT_ENDS_PER_CARD = 6;
@@ -12,6 +13,10 @@ export interface ArrowShot {
 	score: ArrowScore;
 	x: number | null;
 	y: number | null;
+	/** Mantis aim trace, when the scorecard file included one for this arrow. */
+	aim?: AimTrace;
+	/** UTC timestamp from a Flutter export, kept so a save does not drop it. */
+	firedAt?: string;
 }
 
 export function emptyArrow(): ArrowShot {
@@ -370,6 +375,8 @@ export function applyScore(state: SessionState, value: number): SessionState {
 	shot.score = value;
 	shot.x = null;
 	shot.y = null;
+	delete shot.aim;
+	delete shot.firedAt;
 	return next;
 }
 
@@ -401,6 +408,8 @@ export function undoLast(state: SessionState): SessionState {
 	shot.score = null;
 	shot.x = null;
 	shot.y = null;
+	delete shot.aim;
+	delete shot.firedAt;
 	return next;
 }
 

@@ -23,6 +23,7 @@ import {
 	shotHasPlacement,
 	sessionGrandTotal,
 	undoLast,
+	type Cursor,
 	type SessionConfig,
 	type SessionState,
 } from '../model/scorecard';
@@ -85,6 +86,7 @@ export class ScorecardView extends FileView {
 	private visibleEndsPerCard: Set<number>[] = [];
 	private visibleArrowsPerCard: Set<number>[] = [];
 	private scoreFilter: ScoreFilter = { ...EMPTY_SCORE_FILTER };
+	private selectedAim: Cursor | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ArcheryPlugin) {
 		super(leaf);
@@ -226,6 +228,7 @@ export class ScorecardView extends FileView {
 		this.mode = 'view';
 		this.showReview = false;
 		this.scoreFilter = { ...EMPTY_SCORE_FILTER };
+		this.selectedAim = null;
 		this.visibleEndsPerCard = [];
 		this.visibleArrowsPerCard = [];
 		this.render();
@@ -597,6 +600,7 @@ export class ScorecardView extends FileView {
 				this.plugin.settings.showEndEllipses,
 				this.plugin.settings.targetShotMarkerSize,
 				this.plugin.settings.showShotScores,
+				this.selectedAim,
 			);
 		}
 	}
@@ -834,6 +838,7 @@ export class ScorecardView extends FileView {
 				this.plugin.settings.showEndEllipses,
 				this.plugin.settings.targetShotMarkerSize,
 				this.plugin.settings.showShotScores,
+				this.selectedAim,
 			);
 			this.targetFaces.push(face);
 			if (isScoreFilterActive(this.scoreFilter)) {
@@ -909,6 +914,7 @@ export class ScorecardView extends FileView {
 			for (let arrow = 0; arrow < config.arrowsPerEnd; arrow++) {
 				const cell = row.createDiv({ cls: 'archery-cell archery-cell-score' });
 				cell.setText('·');
+				cell.addEventListener('click', () => this.toggleAimSelection(cardIndex, end, arrow));
 				arrowCells.push({ el: cell });
 			}
 			this.cellRefs[cardIndex]![end] = arrowCells;
@@ -972,6 +978,35 @@ export class ScorecardView extends FileView {
 		btn.addEventListener('click', () => this.handleScore(score));
 	}
 
+	private isSelectedAim(card: number, end: number, arrow: number): boolean {
+		const selected = this.selectedAim;
+		return selected !== null && selected.card === card && selected.end === end && selected.arrow === arrow;
+	}
+
+	private toggleAimSelection(card: number, end: number, arrow: number): void {
+		if (this.mode !== 'view') return;
+		const shot = this.state.cards[card]?.ends[end]?.[arrow];
+		if (!shot?.aim || shot.aim.points.length < 2) return;
+		if (this.isSelectedAim(card, end, arrow)) {
+			this.selectedAim = null;
+			this.refreshAllCells();
+			return;
+		}
+		this.selectedAim = { card, end, arrow };
+		this.ensureVisibleEnds();
+		this.visibleEndsPerCard[card]?.add(end);
+		if (!this.showTargetFace) {
+			this.showTargetFace = true;
+			this.initVisibleEnds();
+			this.initVisibleArrows();
+			this.visibleEndsPerCard[card]?.add(end);
+			this.renderViewMode();
+			this.updateModeUi();
+			return;
+		}
+		this.refreshAllCells();
+	}
+
 	private isActiveCell(card: number, end: number, arrow: number): boolean {
 		const cursor = nextCursor(this.state);
 		return (
@@ -983,6 +1018,14 @@ export class ScorecardView extends FileView {
 	}
 
 	private refreshAllCells(): void {
+		if (this.selectedAim) {
+			const { card, end, arrow } = this.selectedAim;
+			const selectedShot = this.state.cards[card]?.ends[end]?.[arrow];
+			if (!selectedShot?.aim || selectedShot.aim.points.length < 2) {
+				this.selectedAim = null;
+			}
+		}
+
 		const { config } = this.state;
 		const cursor = nextCursor(this.state);
 
@@ -1000,9 +1043,19 @@ export class ScorecardView extends FileView {
 					const shot = arrows[arrow];
 					const score = shot?.score ?? null;
 					ref.el.setText(formatScore(score));
+					const hasAim = (shot?.aim?.points.length ?? 0) >= 2;
 					ref.el.toggleClass('archery-cell-active', this.isActiveCell(card, end, arrow));
 					ref.el.toggleClass('archery-cell-filled', score !== null);
 					ref.el.toggleClass('archery-cell-placed', shotHasPlacement(shot));
+					ref.el.toggleClass('archery-cell-has-aim', hasAim);
+					ref.el.toggleClass('archery-cell-aim', hasAim && this.isSelectedAim(card, end, arrow));
+					if (hasAim) {
+						ref.el.title = this.isSelectedAim(card, end, arrow)
+							? 'Hide aim trace'
+							: 'Show aim trace';
+					} else {
+						ref.el.removeAttribute('title');
+					}
 					applyScoreColorClass(ref.el, score);
 					if (this.showTargetFace) {
 						const visibleArrows = this.visibleArrowsPerCard[card] ?? new Set();
@@ -1084,6 +1137,7 @@ export class ScorecardView extends FileView {
 	}
 
 	async resetSession(): Promise<void> {
+		this.selectedAim = null;
 		this.state = createSessionState(this.state.config);
 		this.syncEditBufferFromState();
 		this.refreshAllCells();

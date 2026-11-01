@@ -1,3 +1,4 @@
+import { aimTraceOnTarget } from '../model/aimTrace';
 import {
 	clientToTargetCoords,
 	ringFillClass,
@@ -7,8 +8,10 @@ import {
 import {
 	cardIsFullyScored,
 	endColorClass,
+	formatScore,
 	nextCursor,
 	type ArrowShot,
+	type Cursor,
 	type SessionState,
 } from '../model/scorecard';
 import { isScoreFilterActive, shotMatchesScoreFilter, type ScoreFilter } from '../model/scoreFilter';
@@ -32,6 +35,7 @@ export class TargetFace {
 	private root: HTMLElement;
 	private svg: SVGSVGElement;
 	private ellipsesLayer: SVGGElement;
+	private tracesLayer: SVGGElement;
 	private markersLayer: SVGGElement;
 	private previewMarker: SVGGElement | null = null;
 	private cardIndex: number;
@@ -43,6 +47,7 @@ export class TargetFace {
 	private showShotScores = true;
 	private scoreFilter: ScoreFilter = { minScore: null, maxScore: null };
 	private currentEndIndex: number | null = null;
+	private selectedAim: Cursor | null = null;
 	private onPlace: (x: number, y: number, score: number) => void;
 	private dragging = false;
 	private active = false;
@@ -66,6 +71,9 @@ export class TargetFace {
 		this.ellipsesLayer = this.doc.createElementNS(SVG_NS, 'g');
 		this.ellipsesLayer.setAttribute('class', 'archery-target-ellipses');
 		this.svg.appendChild(this.ellipsesLayer);
+		this.tracesLayer = this.doc.createElementNS(SVG_NS, 'g');
+		this.tracesLayer.setAttribute('class', 'archery-target-traces');
+		this.svg.appendChild(this.tracesLayer);
 		this.markersLayer = this.doc.createElementNS(SVG_NS, 'g');
 		this.markersLayer.setAttribute('class', 'archery-target-markers');
 		this.svg.appendChild(this.markersLayer);
@@ -94,6 +102,7 @@ export class TargetFace {
 		showEllipses = false,
 		shotMarkerSize = 6,
 		showShotScores = true,
+		selectedAim: Cursor | null = null,
 	): void {
 		this.touchOffsetY = touchOffsetY;
 		this.visibleEnds = visibleEnds;
@@ -102,6 +111,7 @@ export class TargetFace {
 		this.showEllipses = showEllipses;
 		this.shotMarkerSize = normalizeShotMarkerSize(shotMarkerSize);
 		this.showShotScores = showShotScores;
+		this.selectedAim = selectedAim;
 		const filtering = isScoreFilterActive(scoreFilter);
 
 		const cursor = nextCursor(state);
@@ -119,6 +129,7 @@ export class TargetFace {
 		this.svg.style.pointerEvents = this.active ? 'auto' : 'none';
 
 		this.renderEllipses(state);
+		this.renderTraces(state);
 		this.renderMarkers(state);
 		if (!this.dragging) {
 			this.clearPreview();
@@ -187,6 +198,58 @@ export class TargetFace {
 		return element;
 	}
 
+	private renderTraces(state: SessionState): void {
+		this.tracesLayer.replaceChildren();
+		const selected = this.selectedAim;
+		if (!selected || selected.card !== this.cardIndex) return;
+		const shot = state.cards[selected.card]?.ends[selected.end]?.[selected.arrow];
+		if (!shot?.aim) return;
+		const plotX = shot.x ?? 0;
+		const plotY = shot.y ?? 0;
+		const points = aimTraceOnTarget(shot.aim, plotX, plotY, TARGET_RADIUS);
+		if (points.length < 2) return;
+		const breakAt = points.findIndex((point) => point.break);
+		const split = breakAt < 0 ? points.length - 1 : breakAt;
+		this.appendTrace(points.slice(0, split + 1), 'archery-aim-trace');
+		this.appendTrace(points.slice(split), 'archery-aim-trace archery-aim-trace-after');
+		const release = points[split]!;
+		const placed = shot.x !== null && shot.y !== null;
+		this.appendBreak(release.x, release.y, placed ? null : shot.score);
+	}
+
+	private appendTrace(
+		points: { x: number; y: number }[],
+		className: string,
+	): void {
+		if (points.length < 2) return;
+		const polyline = this.doc.createElementNS(SVG_NS, 'polyline');
+		polyline.setAttribute(
+			'points',
+			points.map((point) => `${point.x},${-point.y}`).join(' '),
+		);
+		polyline.setAttribute('class', className);
+		this.tracesLayer.appendChild(polyline);
+	}
+
+	private appendBreak(x: number, y: number, score: ArrowShot['score']): void {
+		const group = this.doc.createElementNS(SVG_NS, 'g');
+		group.setAttribute('class', 'archery-aim-break');
+		group.setAttribute('transform', `translate(${x}, ${-y})`);
+		const dot = this.doc.createElementNS(SVG_NS, 'circle');
+		dot.setAttribute('r', '0.34');
+		dot.setAttribute('class', 'archery-aim-break-dot');
+		group.appendChild(dot);
+		if (score !== null) {
+			const label = this.doc.createElementNS(SVG_NS, 'text');
+			label.setAttribute('y', '-0.48');
+			label.setAttribute('text-anchor', 'middle');
+			label.setAttribute('class', 'archery-aim-break-label');
+			label.textContent = formatScore(score);
+			group.appendChild(label);
+		}
+		this.tracesLayer.appendChild(group);
+	}
+
 	private renderMarkers(state: SessionState): void {
 		this.markersLayer.replaceChildren();
 
@@ -195,15 +258,24 @@ export class TargetFace {
 
 		const filtering = isScoreFilterActive(this.scoreFilter);
 
+		const selected = this.selectedAim;
 		for (let endIndex = 0; endIndex < scorecard.ends.length; endIndex++) {
-			if (!filtering && !this.visibleEnds.has(endIndex)) continue;
+			const endSelected = selected?.card === this.cardIndex && selected.end === endIndex;
+			if (!filtering && !this.visibleEnds.has(endIndex) && !endSelected) continue;
 			const end = scorecard.ends[endIndex];
 			if (!end) continue;
 			for (let arrowIndex = 0; arrowIndex < end.length; arrowIndex++) {
-				if (!filtering && !this.visibleArrows.has(arrowIndex)) continue;
+				const shotSelected = endSelected && selected?.arrow === arrowIndex;
+				if (!filtering && !this.visibleArrows.has(arrowIndex) && !shotSelected) continue;
 				const shot = end[arrowIndex];
 				if (!shot || shot.x === null || shot.y === null || shot.score === null) continue;
-				if (filtering && !shotMatchesScoreFilter(shot, this.scoreFilter)) continue;
+				if (
+					filtering &&
+					!shotSelected &&
+					!shotMatchesScoreFilter(shot, this.scoreFilter)
+				) {
+					continue;
+				}
 				this.markersLayer.appendChild(
 					createTargetShotMarker(this.doc, shot, {
 						endIndex,

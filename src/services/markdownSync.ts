@@ -13,6 +13,7 @@ import {
 	type SessionStats,
 	type SessionState,
 } from '../model/scorecard';
+import { aimTraceKey, formatSessionAimTraces, parseAimTraces } from '../model/aimTrace';
 import { roundCoord } from '../model/targetScoring';
 import { normalizeScorecardFolder } from '../settings';
 
@@ -31,20 +32,23 @@ function formatCoord(value: number): string {
 function formatCell(shot: ArrowShot): string {
 	if (shot.score === null) return '';
 	const scorePart = shot.score === MISS_SCORE ? 'M' : String(shot.score);
+	let cell = scorePart;
 	if (shot.x !== null && shot.y !== null) {
-		return `${scorePart}@${formatCoord(shot.x)},${formatCoord(shot.y)}`;
+		cell = `${scorePart}@${formatCoord(shot.x)},${formatCoord(shot.y)}`;
 	}
-	return scorePart;
+	if (shot.firedAt) cell = `${cell}~${shot.firedAt}`;
+	return cell;
 }
 
 function parseArrowCell(cell: string): ArrowShot {
 	const trimmed = cell.trim();
 	if (!trimmed) return emptyArrow();
 
-	let scorePart = trimmed;
+	const { body, firedAt } = splitShotTime(trimmed);
+	let scorePart = body;
 	let x: number | null = null;
 	let y: number | null = null;
-	const coordMatch = trimmed.match(COORD_SUFFIX);
+	const coordMatch = body.match(COORD_SUFFIX);
 	if (coordMatch) {
 		scorePart = coordMatch[1]!.trim();
 		x = Number.parseFloat(coordMatch[2]!);
@@ -55,15 +59,26 @@ function parseArrowCell(cell: string): ArrowShot {
 		}
 	}
 
+	const timed = firedAt ? { firedAt } : {};
 	if (scorePart.toUpperCase() === 'M') {
-		return { score: MISS_SCORE, x, y };
+		return { score: MISS_SCORE, x, y, ...timed };
 	}
 
 	const value = Number.parseInt(scorePart, 10);
 	if (Number.isNaN(value) || value < MISS_SCORE || value > 10) {
 		return emptyArrow();
 	}
-	return { score: value, x, y };
+	return { score: value, x, y, ...timed };
+}
+
+/** Flutter writes `score@x,y~2026-10-20T15:46:12.340Z`. The time has to come off before the coordinate. */
+function splitShotTime(cell: string): { body: string; firedAt?: string } {
+	const split = cell.lastIndexOf('~');
+	if (split < 0) return { body: cell };
+	const suffix = cell.slice(split + 1).trim();
+	const body = cell.slice(0, split).trim();
+	if (!/^\d{4}-\d{2}-\d{2}T/.test(suffix)) return { body };
+	return { body, firedAt: suffix };
 }
 
 function formatDateForFilename(date = new Date()): string {
@@ -329,6 +344,20 @@ export function parseScorecardBlock(content: string): SessionState | null {
 	if (session) {
 		withNotes.session = session;
 	}
+	const traces = parseAimTraces(content);
+	for (let cardIndex = 0; cardIndex < withNotes.cards.length; cardIndex++) {
+		const scorecard = withNotes.cards[cardIndex];
+		if (!scorecard) continue;
+		for (let endIndex = 0; endIndex < scorecard.ends.length; endIndex++) {
+			const end = scorecard.ends[endIndex];
+			if (!end) continue;
+			for (let arrow = 0; arrow < end.length; arrow++) {
+				const trace = traces.get(aimTraceKey(cardIndex, endIndex, arrow));
+				const shot = end[arrow];
+				if (trace && shot) shot.aim = trace;
+			}
+		}
+	}
 	return withNotes;
 }
 
@@ -402,7 +431,10 @@ function sessionGrandTotalFromState(state: SessionState): number {
 }
 
 export function serializeSession(state: SessionState): string {
-	return `${serializeMeta(state)}\n\n${buildScorecardBlock(state)}`;
+	const markdown = `${serializeMeta(state)}\n\n${buildScorecardBlock(state)}`;
+	const block = formatSessionAimTraces(state);
+	if (!block) return markdown;
+	return `${markdown}\n${block}`;
 }
 
 export function findMarkerBlock(content: string): { start: number; end: number } | null {
